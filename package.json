@@ -1,8 +1,8 @@
 {
-  "name": "Filmometar",
-  "version": "1.0.0",
-  "description": "A simple film rating application",
-  "scripts": {
-    "start": "node --experimental-sqlite --disable-warning=ExperimentalWarning src/server.js"
-  }
+    "name": "filmometar",
+    "version": "1.0.0",
+    "description": "A simple film rating application",
+    "scripts": {
+        "start": "node --experimental-sqlite --disable-warning=ExperimentalWarning src/server.js"
+    }
 }
