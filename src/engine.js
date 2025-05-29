@@ -3,26 +3,29 @@ const { DatabaseSync } = require("node:sqlite");
 function createDatabase() {
     const db = new DatabaseSync("./models/data.sqlite");
     db.exec(`
-        CREATE TABLE IF NOT EXISTS films (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            rating INT NOT NULL,
-            author TEXT NOT NULL,
-            category TEXT NOT NULL,
-            year INTEGER,
-            genre TEXT,
-            description TEXT
-        );
-
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user TEXT NOT NULL
+            username TEXT NOT NULL,
+            password TEXT NOT NULL,
+            email TEXT
         );
 
         CREATE TABLE IF NOT EXISTS categories (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
             description TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS films (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            rating INT NOT NULL,
+            year INTEGER,
+            genre_id INT,
+            author_id INT,
+            description TEXT,
+            FOREIGN KEY (genre_id) REFERENCES categories(id),
+            FOREIGN KEY (author_id) REFERENCES users(id)
         );
     `);
 
@@ -68,26 +71,50 @@ function insertData(db, tableName, data) {
     const values = Object.values(data);
     const placeholders = values.map(() => "?").join(", ");
 
-    const insert = db.prepare(`INSERT INTO ${tableName} (${columns}) VALUES (${placeholders})`);
+    try {
+        const tableInfo = db.prepare(`PRAGMA table_info(${tableName})`).all();
+        const validColumns = tableInfo.map((col) => col.name);
 
-    const result = insert.run(...values);
-    const lastId = result.lastInsertRowid;
+        for (const column of Object.keys(data)) {
+            if (!validColumns.includes(column)) {
+                throw new Error(`Error table ${tableName} has no column named ${column}`);
+            }
+        }
 
-    const select = db.prepare(`SELECT * FROM ${tableName} WHERE id = ?`);
-    const insertedRow = select.get(lastId);
-    console.log(`Podaci su uspešno uneti u tabelu "${tableName}".`);
-    return insertedRow;
+        const insert = db.prepare(`INSERT INTO ${tableName} (${columns}) VALUES (${placeholders})`);
+        const result = insert.run(...values);
+        const lastId = result.lastInsertRowid;
+
+        const select = db.prepare(`SELECT * FROM ${tableName} WHERE id = ?`);
+        const insertedRow = select.get(lastId);
+        return insertedRow;
+    } catch (error) {
+        console.log(error.message);
+        return { error: error.message };
+    }
 }
 
-function deleteData(db, tableName, id) {
-    if (!id) {
-        throw new Error("ID must be provided for deletion.");
+function deleteData(db, tableName, condition) {
+    if (!condition) {
+        throw new Error("Morate specificirati uslov za brisanje u formatu { 'stupac': 'vrednost' }.");
     }
+    try {
+        const [columnName, value] = Object.entries(condition)[0];
 
-    const deleteQuery = db.prepare(`DELETE FROM ${tableName} WHERE id = ?`);
-    deleteQuery.run(id);
+        const query = `DELETE FROM ${tableName} WHERE ${columnName} = ?`;
+        const statement = db.prepare(query);
 
-    console.log(`Podaci sa ID ${id} su uspešno obrisani iz tabele "${tableName}".`);
+        // const deleteQuery = db.prepare(`DELETE FROM ${tableName} WHERE id = ?`);
+        a = statement.run(value);
+
+        if (a.changes === 0) {
+            throw new Error(`Nema podataka za brisanje sa ${columnName} = ${value} u tabeli "${tableName}".`);
+        }
+        return { message: `Podaci sa ID ${value} su uspešno obrisani iz tabele "${tableName}".` };
+    } catch (error) {
+        console.log(error);
+        return { error: error.message };
+    }
 }
 
 module.exports = {

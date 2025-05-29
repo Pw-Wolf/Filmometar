@@ -16,7 +16,6 @@ const server = htpp.createServer((req, res) => {
 
     if (method === "GET") {
         if (pathname === "/") {
-            console.log("Serving index.html");
             res.writeHead(200, { "Content-Type": "text/html" });
             const html = fs.readFileSync(path.join(__dirname, "..", "public", "index.html"), "utf8");
             res.end(html);
@@ -55,16 +54,30 @@ const server = htpp.createServer((req, res) => {
         if (pathname.startsWith("/api")) {
             const resource = pathname.split("/").pop();
             let body = "";
+            let data = {};
             req.on("data", (chunk) => {
                 body += chunk.toString();
             });
             req.on("end", async () => {
-                const data = JSON.parse(body);
+                try {
+                    data = JSON.parse(body);
+                } catch (error) {
+                    console.error(`Error parsing JSON: ${error.message}`);
+                    res.writeHead(400, { "Content-Type": "application/json" });
+
+                    res.end(JSON.stringify({ error: "Invalid JSON format." }));
+                    return;
+                }
                 console.log(`Inserting data into ${resource}`);
                 console.log(data);
-                insertData(db, resource, data);
-                res.writeHead(201, { "Content-Type": "application/json" });
-                res.end(JSON.stringify({ message: `Successfully added ${resource}` }));
+                returnedData = insertData(db, resource, data);
+                if (returnedData["error"]) {
+                    res.writeHead(400, { "Content-Type": "application/json" });
+                    res.end(JSON.stringify(returnedData));
+                } else {
+                    res.writeHead(201, { "Content-Type": "application/json" });
+                    res.end(JSON.stringify({ message: `Successfully added ${resource}` }));
+                }
             });
         } else {
             res.writeHead(404, { "Content-Type": "text/plain" });
@@ -93,16 +106,31 @@ const server = htpp.createServer((req, res) => {
         if (pathname.startsWith("/api")) {
             const resource = pathname.split("/").pop();
             let body = "";
+            let data = {};
             req.on("data", (chunk) => {
                 body += chunk.toString();
             });
             req.on("end", async () => {
-                const data = JSON.parse(body);
+                try {
+                    data = JSON.parse(body);
+                } catch (error) {
+                    console.error(`Error parsing JSON: ${error.message}`);
+                    res.writeHead(400, { "Content-Type": "application/json" });
+
+                    res.end(JSON.stringify({ error: "Invalid JSON format." }));
+                    return;
+                }
                 console.log(`Deleting data from ${resource}`);
                 console.log(data);
-                deleteData(db, resource, data.id);
-                res.writeHead(200, { "Content-Type": "application/json" });
-                res.end(JSON.stringify({ message: `Successfully deleted ${resource}` }));
+                returnedData = deleteData(db, resource, data);
+                if (returnedData["error"]) {
+                    res.writeHead(400, { "Content-Type": "application/json" });
+                    res.end(JSON.stringify(returnedData));
+                    return;
+                } else {
+                    res.writeHead(200, { "Content-Type": "application/json" });
+                    res.end(JSON.stringify({ message: `Successfully deleted ${resource}` }));
+                }
             });
         } else {
             res.writeHead(404, { "Content-Type": "text/plain" });

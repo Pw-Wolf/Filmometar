@@ -4,15 +4,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Filmometar - Movie Rating App</title>
     <link rel="stylesheet" href="public/styles.css">
 </head>
 
 <body>
-    <h1>Welcome to the Filmometar</h1>
-    <p>This is a simple web page for reating movies.</p>
-</body>
-<script src="public/script.js"></script>
+    <header>
+        <h1>Filmometar</h1>
+        <nav>
+            <div class="dropdown">
+                <button id="categoryDropdown" class="nav-btn">Categories ▼</button>
+                <div id="categoryList" class="dropdown-content">
+                    <!-- Categories will be loaded here dynamically -->
+                </div>
+            </div>
+            <button id="showAddFormBtn" class="nav-btn">Add New Movie</button>
+            User: <span id="usernameDisplay">Guest</span>
+        </nav>
+    </header>
 
+    <main class="container">
+        <!-- Form for adding new movies -->
+        <section id="addMovieForm" class="form-section hidden">
+            <h2>Add New Movie</h2>
+            <form id="movieForm">
+                <div class="form-group">
+                    <label for="title">Movie Title:</label>
+                    <input type="text" id="title" name="title" required>
+                </div>
+                <div class="form-group">
+                    <label for="year">Release Year:</label>
+                    <input type="number" id="year" name="year" required>
+                </div>
+                <div class="form-group">
+                    <label for="category">Category:</label>
+                    <select id="category" name="category" required>
+                        <!-- Categories will be loaded dynamically -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="rating">Rating (1-10):</label>
+                    <input type="number" id="rating" name="rating" min="1" max="10" required>
+                </div>
+                <div class="form-group">
+                    <label for="description">Description:</label>
+                    <textarea id="description" name="description" rows="4"></textarea>
+                </div>
+                <button type="submit">Add Movie</button>
+            </form>
+        </section>
+
+        <!-- Movie list section -->
+        <section id="movieList" class="movie-grid">
+            <!-- Movies will be loaded here dynamically -->
+        </section>
+
+        <!-- Category filter -->
+        <aside class="category-filter">
+            <h3></h3>
+            <ul id="categoryList">
+                <!-- Categories will be loaded dynamically -->
+            </ul>
+        </aside>
+    </main>
+
+    <template id="movieTemplate">
+        <div class="movie-card">
+            <h3 class="movie-title"></h3>
+            <p class="movie-year"></p>
+            <p class="movie-category"></p>
+            <div class="movie-rating"></div>
+            <p class="movie-description"></p>
+        </div>
+    </template>
+
+    <footer>
+        <p>&copy; 2023 Filmometar. All rights reserved.</p>
+    </footer>
+
+    <script src="public/script.js"></script>
+</body>
 
 </html>
