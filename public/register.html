@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Filmometar - Register</title>
+    <link rel="stylesheet" href="public/styles.css">
+</head>
+
+<body>
+    <header>
+        <h1>Filmometar</h1>
+    </header>
+
+    <main class="container">
+        <div class="login-container">
+            <h2>Create Account</h2>
+            <section id="registerForm" class="form-section">
+                <form id="register">
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <input type="text" id="username" name="username" required>
+
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" required>
+
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email">
+                    </div>
+                    <div id="errorMessage" class="error-message hidden"></div>
+                    <button type="submit" class="login-btn">Register</button>
+                </form>
+                <p class="register-text">Already have an account? <a href="/login">Login</a></p>
+            </section>
+        </div>
+    </main>
+</body>
+<script src="public/register.js"></script>
+
+</html>

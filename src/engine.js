@@ -5,14 +5,14 @@ function createDatabase() {
     db.exec(`
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT NOT NULL,
+            username TEXT NOT NULL UNIQUE,
             password TEXT NOT NULL,
             email TEXT
         );
 
         CREATE TABLE IF NOT EXISTS categories (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
+            name TEXT NOT NULL UNIQUE,
             description TEXT
         );
 
@@ -37,8 +37,8 @@ function readData(db, table) {
     const query = db.prepare(`SELECT * FROM ${table}`);
 
     const rows = query.all();
-    console.log(`Podaci iz ${table}:`);
-    console.log(rows);
+    // console.log(`Podaci iz ${table}:`);
+    // console.log(rows);
     return rows;
 }
 
@@ -62,7 +62,7 @@ function updateData(db, table, data) {
 
     const slelect = db.prepare(`SELECT * FROM ${table} WHERE id = ?`);
     const insertedData = slelect.get(id);
-    console.log("Updated data:", insertedData);
+    // console.log("Updated data:", insertedData);
     return insertedData;
 }
 
@@ -116,6 +116,14 @@ function deleteData(db, tableName, condition) {
         return { error: error.message };
     }
 }
+function verifyUser(db, username, password) {
+    if (!username || !password) {
+        throw new Error("Username and password are required for verification.");
+    }
+    const query = db.prepare("SELECT * FROM users WHERE username = ? AND password = ?");
+    const user = query.get(username, password);
+    return user;
+}
 
 module.exports = {
     createDatabase,
@@ -123,4 +131,5 @@ module.exports = {
     updateData,
     insertData,
     deleteData,
+    verifyUser,
 };

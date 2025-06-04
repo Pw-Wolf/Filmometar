@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Filmometar - Movie Rating App</title>
+    <link rel="stylesheet" href="public/styles.css">
+</head>
+
+<body>
+    <script src="public/auth.js"></script>
+    <header>
+        <h1>Filmometar</h1>
+        <!-- <nav>
+            <a href="/" class="nav-btn">Home</a>
+            User: <span id="usernameDisplay">Guest</span>
+        </nav> -->
+    </header>
+
+    <main class="container">
+        <div class="login-container">
+            <h2>Welcome Back</h2>
+            <section id="loginForm" class="form-section">
+                <form id="login">
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <input type="text" id="username" name="username" required>
+
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" required>
+
+                        <label for="rememberMe">Remember Me
+                            <input type="checkbox" id="rememberMe" name="rememberMe">
+                        </label>
+                    </div>
+                    <div id="errorMessage" class="error-message hidden">
+                        Username or password is incorrect.
+                    </div>
+                    <button type="submit" class="login-btn">Login</button>
+                </form>
+                <p class="register-text">Don't have an account? <a href="/register">Register</a></p>
+            </section>
+        </div>
+    </main>
+    <footer>
+        <p>&copy; 2023 Filmometar. All rights reserved.</p>
+    </footer>
+    <script src="public/login.js"></script>
+</body>
+
+</html>

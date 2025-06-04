@@ -56,11 +56,21 @@ header h1 {
     color: white;
 }
 
+.nav-btn.logout {
+    background-color: var(--accent);
+    margin-left: 10px;
+}
+
+.nav-btn.logout:hover {
+    background-color: #ff4444;
+    cursor: pointer;
+}
+
 .form-section {
     max-width: 600px;
     margin: 2rem auto;
     padding: 2rem;
-    background: white;
+    background: var(--background);
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
@@ -77,10 +87,41 @@ header h1 {
 .form-group input,
 .form-group select,
 .form-group textarea {
-    width: 100%;
-    padding: 0.5rem;
-    border: 1px solid #ddd;
-    border-radius: 4px;
+    width: calc(100% - 20px); /* Account for padding */
+    padding: 10px;
+    margin: 8px 0;
+    border: 1px solid var(--accent);
+    border-radius: 5px;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--text);
+    font-size: 1em;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 5px rgba(221, 65, 127, 0.3);
+}
+
+/* Specific sizes for different input types */
+.form-group input[type="text"],
+.form-group input[type="password"],
+.form-group input[type="email"] {
+    height: 40px;
+}
+
+.form-group select {
+    height: 40px;
+    cursor: pointer;
+}
+
+.form-group textarea {
+    min-height: 100px;
+    resize: vertical;
 }
 
 .movie-grid {
@@ -91,10 +132,38 @@ header h1 {
 }
 
 .movie-card {
-    background: var(--accent);
+    /* background: var(--accent); */
+    background: linear-gradient(45deg, var(--primary), var(--accent));
     padding: 1rem;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.movie-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(221, 65, 127, 0.3);
+    background: linear-gradient(145deg, var(--accent), var(--primary));
+    /* background:linear-gradient(45deg, var(--primary), var(--accent)); */
+}
+
+.movie-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transform: translateX(-100%);
+    transition: transform 0.6s;
+}
+
+.movie-card:hover::before {
+    transform: translateX(100%);
 }
 
 .hidden {
@@ -119,6 +188,13 @@ p {
     padding: 1rem;
 }
 
+.container h2 {
+    color: var(--primary);
+    font-size: 1.8em;
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
 .dropdown {
     position: relative;
     display: inline-block;
@@ -127,12 +203,15 @@ p {
 .dropdown-content {
     display: none;
     position: absolute;
-    background-color: var(--background);
     min-width: 160px;
-    box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
-    z-index: 1;
+    z-index: 1000;
+    background-color: var(--background);
+    border: 1px solid var(--accent);
     border-radius: 4px;
-    margin-top: 2px;
+}
+
+.dropdown-content.show {
+    display: block;
 }
 
 .dropdown-content a {
@@ -140,11 +219,15 @@ p {
     padding: 12px 16px;
     text-decoration: none;
     display: block;
-    cursor: pointer;
 }
 
 .dropdown-content a:hover {
     background-color: var(--accent);
+}
+
+.dropdown-content a.active {
+    background-color: var(--primary);
+    color: white;
 }
 
 .dropdown:hover .dropdown-content {
@@ -153,4 +236,228 @@ p {
 
 .dropdown:hover .nav-btn {
     background-color: var(--primary);
+}
+
+footer {
+    background-color: var(--background);
+    color: var(--text);
+    text-align: center;
+    padding: 1rem;
+    position: relative;
+    bottom: 0;
+    border: 0px solid #ddd;
+    border-top-width: 1px;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+.modal-content {
+    background-color: var(--background);
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 20px;
+    border: 1px solid var(--accent);
+    width: 70%;
+    max-width: 500px;
+    border-radius: 8px;
+}
+
+.close {
+    color: var(--accent);
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close:hover {
+    color: var(--primary);
+}
+
+.submit-btn {
+    background-color: var(--primary);
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 10px;
+}
+
+.submit-btn:hover {
+    background-color: var(--accent);
+}
+
+.login-container {
+    max-width: 400px;
+    margin: 50px auto;
+    padding: 2rem;
+    background-color: rgba(22, 10, 15, 0.8);
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(221, 65, 127, 0.2);
+    border: 1px solid var(--primary);
+}
+
+.login-container h2 {
+    color: var(--primary);
+    text-align: center;
+    margin-bottom: 2rem;
+    font-size: 2em;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--text);
+    font-size: 0.9em;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--accent);
+    border-radius: 5px;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--text);
+    font-size: 1em;
+    transition: border-color 0.3s ease;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 5px rgba(221, 65, 127, 0.3);
+}
+
+.login-btn {
+    width: 100%;
+    padding: 12px;
+    background-color: var(--primary);
+    color: var(--text);
+    border: none;
+    border-radius: 5px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.login-btn:hover {
+    background-color: var(--accent);
+}
+
+.register-text {
+    text-align: center;
+    margin-top: 1.5rem;
+    color: var(--text);
+}
+
+.register-text a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.register-text a:hover {
+    color: var(--accent);
+    text-decoration: underline;
+}
+
+/* Checkbox style */
+.form-group label[for="rememberMe"] {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 15px 0;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.form-group input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    min-width: 10px;
+    min-height: 10px;
+    width: 15px;
+    height: 15px;
+    padding: 0;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--accent);
+    border-radius: 2px;
+    cursor: pointer;
+    position: relative;
+    margin: 0;
+}
+
+.form-group input[type="checkbox"]:checked {
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+.form-group input[type="checkbox"]:checked::after {
+    content: "✓";
+    color: var(--text);
+    font-size: 8px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.error-message {
+    color: #ff4444;
+    margin: 10px 0;
+    padding: 10px;
+    border-radius: 4px;
+    background-color: rgba(255, 68, 68, 0.1);
+    border: 1px solid #ff4444;
+}
+
+#showAddFormBtn {
+    background: linear-gradient(45deg, var(--primary), var(--accent));
+    color: var(--text);
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+#showAddFormBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(221, 65, 127, 0.3);
+    background: linear-gradient(45deg, var(--accent), var(--primary));
+}
+
+#showAddFormBtn::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transform: translateX(-100%);
+    transition: transform 0.5s ease;
+}
+
+#showAddFormBtn:hover::before {
+    transform: translateX(100%);
 }

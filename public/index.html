@@ -19,11 +19,13 @@
                 </div>
             </div>
             <button id="showAddFormBtn" class="nav-btn">Add New Movie</button>
-            User: <span id="usernameDisplay">Guest</span>
+            User: <span id="usernameDisplay"></span>
+            <button id="logoutBtn" class="nav-btn">Logout</button>
         </nav>
     </header>
 
     <main class="container">
+        <h2 class="category-display"></h2>
         <!-- Form for adding new movies -->
         <section id="addMovieForm" class="form-section hidden">
             <h2>Add New Movie</h2>
@@ -77,6 +79,38 @@
             <p class="movie-description"></p>
         </div>
     </template>
+
+    <div id="addMovieModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Add New Movie</h2>
+            <form id="addMovieForm">
+                <div class="form-group">
+                    <label for="movieName">Movie Title:</label>
+                    <input type="text" id="movieName" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label for="movieYear">Release Year:</label>
+                    <input type="number" id="movieYear" name="year" required>
+                </div>
+                <div class="form-group">
+                    <label for="movieCategory">Category:</label>
+                    <select id="movieCategory" name="genre_id" required>
+                        <!-- Categories will be loaded dynamically -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="movieRating">Rating (1-10):</label>
+                    <input type="number" id="movieRating" name="rating" min="1" max="10" required>
+                </div>
+                <div class="form-group">
+                    <label for="movieDescription">Description:</label>
+                    <textarea id="movieDescription" name="description" rows="4"></textarea>
+                </div>
+                <button type="submit" class="submit-btn">Add Movie</button>
+            </form>
+        </div>
+    </div>
 
     <footer>
         <p>&copy; 2023 Filmometar. All rights reserved.</p>
