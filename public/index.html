@@ -73,9 +73,14 @@
     <template id="movieTemplate">
         <div class="movie-card">
             <h3 class="movie-title"></h3>
-            <p class="movie-year"></p>
-            <p class="movie-category"></p>
-            <div class="movie-rating"></div>
+            <div>
+                <p class="movie-year"></p>
+                <p class="movie-category"></p>
+            </div>
+            <div>
+                <div class="movie-rating"></div>
+                <p class="movie-author"></p>
+            </div>
             <p class="movie-description"></p>
         </div>
     </template>
@@ -86,30 +91,34 @@
             <h2>Add New Movie</h2>
             <form id="addMovieForm">
                 <div class="form-group">
-                    <label for="movieName">Movie Title:</label>
-                    <input type="text" id="movieName" name="name" required>
+                    <label for="movieTitle">Title:</label>
+                    <input type="text" id="movieTitle" placeholder="Enter movie title" required>
                 </div>
-                <div class="form-group">
-                    <label for="movieYear">Release Year:</label>
-                    <input type="number" id="movieYear" name="year" required>
+                <div class="form-row"> <!-- New container -->
+                    <div class="form-group">
+                        <label for="movieYear">Year:</label>
+                        <input type="number" id="movieYear" placeholder="Enter release year" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="movieRating">Rating:</label>
+                        <input type="number" id="movieRating" min="1" max="10" placeholder="Enter rating (1-10)"
+                            required>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label for="movieCategory">Category:</label>
-                    <select id="movieCategory" name="genre_id" required>
-                        <!-- Categories will be loaded dynamically -->
+                    <select id="movieCategory" required>
+                        <!-- Options will be populated dynamically -->
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="movieRating">Rating (1-10):</label>
-                    <input type="number" id="movieRating" name="rating" min="1" max="10" required>
-                </div>
-                <div class="form-group">
                     <label for="movieDescription">Description:</label>
-                    <textarea id="movieDescription" name="description" rows="4"></textarea>
+                    <textarea id="movieDescription" placeholder="Enter movie description"></textarea>
                 </div>
                 <button type="submit" class="submit-btn">Add Movie</button>
             </form>
         </div>
+    </div>
     </div>
 
     <footer>

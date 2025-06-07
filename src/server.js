@@ -133,7 +133,6 @@ const server = htpp.createServer((req, res) => {
                             res.end(JSON.stringify({ message: "Registration successful" }));
                         }
                     } else if (resource === "login") {
-                        console.log("Login attempt");
                         const { username, password } = data;
                         const user = verifyUser(db, username, password);
                         console.log(`User verification result: ${JSON.stringify(user)}`);
@@ -156,7 +155,6 @@ const server = htpp.createServer((req, res) => {
                                 })
                             );
                             console.log(`Set-Cookie: sessionId=${sessionId}`);
-                            console.log("dick");
                             res.writeHead(200, { "Content-Type": "application/json" });
                             res.end(JSON.stringify({ message: "Login successful", sessionId: sessionId, user }));
                         } else {

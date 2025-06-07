@@ -27,6 +27,16 @@ function createDatabase() {
             FOREIGN KEY (genre_id) REFERENCES categories(id),
             FOREIGN KEY (author_id) REFERENCES users(id)
         );
+
+        CREATE TABLE IF NOT EXISTS user_films (
+            user_id INTEGER,
+            film_id INTEGER,
+            watched BOOLEAN DEFAULT 0,
+            PRIMARY KEY (user_id, film_id),
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (film_id) REFERENCES films(id)
+        );
+
     `);
 
     console.log("Database and tables created successfully.");

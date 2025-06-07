@@ -5,11 +5,38 @@
     --background-color: #444444;
     --text-color: #e4e4e4; 
     */
-    --text: #f0dee6;
+
+    /* --text: #f0dee6;
     --background: #160a0f;
     --primary: #dd417f;
     --secondary: #861b17;
-    --accent: #b6645f;
+    --accent: #b6645f; */
+
+    /* --text: #f3e0f0; */
+
+    /* --text: #1f151d;
+    --background: #0c040b;
+    --primary: #e491d8;
+    --secondary: #8d1b7d;
+    --accent: #e333cb; */
+
+    /* --text: #b6b6b6;
+    --background: #10180c;
+    --primary: #b3d6a2;
+    --secondary: #45772e;
+    --accent: #82ca60; */
+
+    --text: #e0dfef;
+    --background: #0e0d1a;
+    --primary: #a3a2d0;
+    --secondary: #5d366a;
+    --accent: #b46caf;
+
+    --active: #27823e;
+    --deactive: #9ad9aa;
+    --hover: #3ad260;
+
+    --red: #ff4444;
 
     /* 
     --text: #f6eef0;
@@ -62,7 +89,7 @@ header h1 {
 }
 
 .nav-btn.logout:hover {
-    background-color: #ff4444;
+    background-color: var(--red);
     cursor: pointer;
 }
 
@@ -97,6 +124,42 @@ header h1 {
     font-size: 1em;
     transition: all 0.3s ease;
     box-sizing: border-box;
+}
+
+.form-group select {
+    /* Inherit styles from other inputs */
+    width: calc(100% - 20px); /* Account for padding */
+    padding: 10px;
+    margin: 8px 0;
+    border: 1px solid var(--accent);
+    border-radius: 5px;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--text);
+    font-size: 1em;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+    height: 40px; /* Consistent height */
+    cursor: pointer;
+
+    /* Remove default arrow styling (optional, for more control) */
+    appearance: none;
+    -webkit-appearance: none;
+    /* Custom arrow styling */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23b46caf'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E"); /* Replace with your arrow icon */
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 20px;
+    padding-right: 30px; /* Make space for the arrow */
+}
+
+.form-group select option {
+    background-color: var(--background); /* Set the background color to your theme's background */
+    color: var(--text); /* Set the text color to your theme's text color */
+}
+
+.form-group select option:hover {
+    background-color: var(--accent); /* Change background color on hover */
+    color: var(--text); /* Keep the text color consistent or change it as desired */
 }
 
 .form-group input:focus,
@@ -134,13 +197,21 @@ header h1 {
 .movie-card {
     /* background: var(--accent); */
     background: linear-gradient(45deg, var(--primary), var(--accent));
+    /* background: linear-gradient(45deg, var(--primary), var(--accent)); */
     padding: 1rem;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border: #ddd 1px solid;
     transition: all 0.3s ease;
     cursor: pointer;
     position: relative;
     overflow: hidden;
+    color: var(--background);
+}
+
+.movie-card.watched {
+    /* color: var(--text); */
+    background: linear-gradient(45deg, var(--active), var(--deactive)) !important;
 }
 
 .movie-card:hover {
@@ -166,6 +237,30 @@ header h1 {
     transform: translateX(100%);
 }
 
+.movie-card > div {
+    /* targets the direct DIV child of .movie-card */
+    display: flex;
+    justify-content: space-between; /* Distributes space evenly between the items */
+    align-items: flex-start; /* Align items to the top */
+    padding-bottom: 0px;
+}
+
+.movie-card-description {
+    margin-top: 1rem;
+    font-size: 1.2em;
+    color: var(--background);
+
+    border-top: #0e0d1a 1px solid;
+    border-bottom: #0e0d1a 1px solid;
+    line-height: 2.4;
+    text-align: center;
+}
+
+.movie-card h3 {
+    font-size: 1.7em;
+    text-align: center;
+}
+
 .hidden {
     display: none;
 }
@@ -177,7 +272,7 @@ h1 {
 }
 
 p {
-    color: var(--text);
+    color: var(--background);
     font-size: 1.2em;
     line-height: 1.5;
 }
@@ -249,6 +344,12 @@ footer {
     border-top-width: 1px;
 }
 
+footer p {
+    margin: 0;
+    font-size: 0.9em;
+    color: var(--text);
+}
+
 .modal {
     display: none;
     position: fixed;
@@ -304,7 +405,7 @@ footer {
     max-width: 400px;
     margin: 50px auto;
     padding: 2rem;
-    background-color: rgba(22, 10, 15, 0.8);
+    background-color: var(--background);
     border-radius: 10px;
     box-shadow: 0 0 20px rgba(221, 65, 127, 0.2);
     border: 1px solid var(--primary);
@@ -405,7 +506,7 @@ footer {
 }
 
 .form-group input[type="checkbox"]:checked {
-    background-color: var(--primary);
+    background-color: var(--secondary);
     border-color: var(--primary);
 }
 
@@ -460,4 +561,51 @@ footer {
 
 #showAddFormBtn:hover::before {
     transform: translateX(100%);
+}
+
+.form-row {
+    display: flex;
+    gap: 1rem; /* Adjust the gap as needed */
+}
+
+.form-row .form-group {
+    flex: 1; /* Each form-group takes up equal space */
+    margin-bottom: 0; /* Remove bottom margin on the individual form-groups */
+}
+
+/* Optional: Adjust input width if needed */
+.form-row .form-group input {
+    width: 100%; /* Input takes full width of its container */
+}
+
+.popupError {
+    position: fixed;
+    top: 20px; /* Distance from the top */
+    left: 20px; /* Distance from the left */
+    transform: none; /* Remove centering */
+    background-color: var(--red);
+    color: white;
+    padding: 20px;
+    border-radius: 5px;
+    z-index: 1001;
+    font-size: 1.2em;
+    max-width: 300px; /* Adjust as needed */
+    word-wrap: break-word; /* Allow long words to break and wrap */
+    text-align: left; /* Align text to the left */
+}
+
+.popupSuccess {
+    position: fixed;
+    top: 20px; /* Distance from the top */
+    left: 20px; /* Distance from the left */
+    transform: none; /* Remove centering */
+    background-color: var(--active);
+    color: white;
+    padding: 20px;
+    border-radius: 5px;
+    z-index: 1001;
+    font-size: 1.2em;
+    max-width: 300px; /* Adjust as needed */
+    word-wrap: break-word; /* Allow long words to break and wrap */
+    text-align: left; /* Align text to the left */
 }

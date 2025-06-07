@@ -42,13 +42,25 @@ function displayMovies(movies) {
         const category = cachedCategories.find((cat) => cat.id === movie.genre_id);
         const categoryName = category ? category.name : "Unknown Category";
 
+        let username;
+        try {
+            username = localStorage.getItem("username");
+        } catch (error) {
+            username = sessionStorage.getItem("username");
+        }
+
         const movieCard = `
             <div class="movie-card">
                 <h3>${movie.name}</h3>
+                <div>
                 <p>Year: ${movie.year}</p>
                 <p>Rating: ${movie.rating}/10</p>
-                <p>${movie.description}</p>
+                </div>
+                <div>
                 <p>Category: ${categoryName}</p>
+                <p>Added By: ${username}</p>
+                </div>
+                <p class="movie-card-description">${movie.description}</p>
             </div>
         `;
         movieList.innerHTML += movieCard;
@@ -57,9 +69,12 @@ function displayMovies(movies) {
 
 async function fetchMoviesByCategory(categoryId) {
     const categoryDisplay = document.querySelector(".category-display");
-    console.log(`Fetching movies for category ID: ${categoryId}`);
 
-    if (categoryId) {
+    if (categoryId === null || categoryId === "null") {
+        // Check for null or "null" string
+        categoryDisplay.textContent = "All Movies";
+        displayMovies(cachedMovies);
+    } else {
         // Važno: genre_id u bazi je numerički, pa moramo osigurati isti tip
         const numericCategoryId = parseInt(categoryId);
         const filteredMovies = cachedMovies.filter((movie) => movie.genre_id === numericCategoryId);
@@ -68,9 +83,6 @@ async function fetchMoviesByCategory(categoryId) {
         categoryDisplay.textContent = category ? `Category: ${category.name}` : "Unknown Category";
 
         displayMovies(filteredMovies);
-    } else {
-        categoryDisplay.textContent = "All Movies";
-        displayMovies(cachedMovies);
     }
 }
 
@@ -83,7 +95,6 @@ async function refreshCache() {
 
 // Add a refresh button handler if you want to manually refresh
 function addRefreshButton() {
-    return; // Remove this line if you want to add the button
     const refreshBtn = document.createElement("button");
     refreshBtn.className = "nav-btn";
     refreshBtn.textContent = "↻ Refresh";
@@ -99,10 +110,7 @@ function displayCategories(categories) {
     const allCategoriesLink = document.createElement("a");
     allCategoriesLink.textContent = "All Movies";
     allCategoriesLink.href = "#";
-    allCategoriesLink.onclick = (e) => {
-        e.preventDefault();
-        fetchMoviesByCategory(null); // Explicitly pass null for all movies
-    };
+    allCategoriesLink.dataset.category = null;
     categoryList.appendChild(allCategoriesLink);
 
     // Add individual categories
@@ -110,11 +118,7 @@ function displayCategories(categories) {
         const categoryLink = document.createElement("a");
         categoryLink.textContent = category.name;
         categoryLink.href = "#";
-        categoryLink.dataset.categoryId = category.id; // Store category ID in data attribute
-        categoryLink.onclick = (e) => {
-            e.preventDefault();
-            fetchMoviesByCategory(category.id);
-        };
+        categoryLink.dataset.category = category.id; // Store category ID in data attribute
         categoryList.appendChild(categoryLink);
     });
 }
@@ -123,7 +127,8 @@ function displayCategories(categories) {
 const modal = document.getElementById("addMovieModal");
 const addMovieBtn = document.getElementById("showAddFormBtn");
 const closeBtn = document.getElementsByClassName("close")[0];
-const addMovieForm = document.getElementById("addMovieForm");
+const addMovieForm = document.getElementById("addMovieForm"); // Corrected selector
+const addMovieButton = document.querySelector("#addMovieModal .submit-btn"); // Select the button inside the modal
 
 // Populate category select when modal opens
 function populateCategorySelect() {
@@ -155,75 +160,22 @@ window.onclick = function (event) {
     }
 };
 
-// Handle form submission
-addMovieForm.onsubmit = async function (e) {
-    e.preventDefault();
+function showPopupMessage(message, type, duration = 4000) {
+    const popup = document.createElement("div");
 
-    const formData = new FormData(addMovieForm);
-    const movieData = Object.fromEntries(formData);
-
-    // Convert string values to numbers where needed
-    movieData.year = parseInt(movieData.year);
-    movieData.rating = parseInt(movieData.rating);
-    movieData.genre_id = parseInt(movieData.genre_id);
-
-    try {
-        const response = await fetch("http://localhost:8080/api/films", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(movieData),
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        // Close modal and refresh movies list
-        modal.style.display = "none";
-        addMovieForm.reset();
-        await refreshCache();
-    } catch (error) {
-        console.error("Error adding movie:", error);
-        alert("Error adding movie. Please try again.");
+    if (type) {
+        popup.classList.add("popupSuccess"); // Add specific success class
+    } else {
+        popup.classList.add("popupError"); // Add specific error class
     }
-};
 
-function userRefresh() {
-    usernameDisplay = document.getElementById("usernameDisplay");
-    usernameDisplay.textContent = localStorage.getItem("username") || sessionStorage.getItem("username") || "Guest";
+    popup.textContent = message;
+    document.body.appendChild(popup);
+
+    setTimeout(() => {
+        popup.remove();
+    }, duration);
 }
-
-document.addEventListener("DOMContentLoaded", () => {
-    refreshCache();
-    addRefreshButton();
-    userRefresh();
-
-    // Initialize logout button
-    const logoutBtn = document.getElementById("logoutBtn");
-    if (logoutBtn) {
-        logoutBtn.classList.add("nav-btn", "logout");
-    }
-});
-
-document.getElementById("categoryDropdown").addEventListener("click", function (e) {
-    e.preventDefault();
-    const dropdown = document.getElementById("categoryList");
-    dropdown.classList.toggle("show");
-});
-
-// Close dropdown when clicking outside
-document.addEventListener("click", function (e) {
-    if (!e.target.matches("#categoryDropdown")) {
-        const dropdowns = document.getElementsByClassName("dropdown-content");
-        for (const dropdown of dropdowns) {
-            if (dropdown.classList.contains("show")) {
-                dropdown.classList.remove("show");
-            }
-        }
-    }
-});
 
 document.getElementById("logoutBtn").addEventListener("click", async () => {
     try {
@@ -238,5 +190,167 @@ document.getElementById("logoutBtn").addEventListener("click", async () => {
         window.location.href = "/login";
     } catch (error) {
         console.error("Logout error:", error);
+    }
+});
+
+addMovieButton.addEventListener("click", async (e) => {
+    e.preventDefault(); // Prevent any default button behavior
+    let userId;
+    let yearFilm = parseInt(document.getElementById("movieYear").value);
+
+    let description = document.getElementById("movieDescription").value;
+    let movieTitle = document.getElementById("movieTitle").value;
+
+    if (description.trim() === "") {
+        description = "No description available."; // Set to null if description is empty
+    }
+
+    try {
+        userId = localStorage.getItem("id");
+    } catch (error) {
+        userId = sessionStorage.getItem("id");
+    }
+
+    if (movieTitle.trim() === "") {
+        showPopupMessage(`Title cannot be empty`, false, 2000);
+        return;
+    }
+
+    const movieData = {
+        name: document.getElementById("movieTitle").value,
+        year: yearFilm,
+        description: description,
+        rating: parseInt(document.getElementById("movieRating").value),
+        genre_id: parseInt(document.getElementById("movieCategory").value),
+        author_id: parseInt(userId),
+    };
+
+    // Check if year, rating, and genre_id are valid numbers
+    if (isNaN(movieData.year)) {
+        console.log("Year is not a valid number");
+        showPopupMessage(`Year is not a valid number`, false, 2000);
+        return;
+    } else if (isNaN(movieData.rating)) {
+        console.log("Rating is not a valid number");
+        showPopupMessage(`Rating is not a valid number`, false, 2000);
+        return;
+    } else if (isNaN(movieData.genre_id)) {
+        console.log("Genre ID is not a valid number");
+        showPopupMessage(`Genre ID is not a valid number`, false, 2000);
+        return;
+    } else if (yearFilm < 1900 || yearFilm > new Date().getFullYear()) {
+        showPopupMessage(`Year must be between 1900 and the current year`, false, 2000);
+        return;
+    } else if (movieData.rating < 0 || movieData.rating > 10) {
+        showPopupMessage(`Rating must be between 0 and 10`, false, 2000);
+        return;
+    }
+
+    try {
+        const response = await fetch("/api/films", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(movieData),
+            credentials: "include",
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        // Close modal and refresh movies list
+        document.getElementById("movieTitle").value = "";
+        document.getElementById("movieYear").value = "";
+        document.getElementById("movieDescription").value = "";
+        document.getElementById("movieRating").value = "";
+        document.getElementById("movieCategory").value = "";
+
+        modal.style.display = "none";
+        // document.addEventListener("DOMContentLoaded", function () {
+        //     document.getElementById("addMovieForm").reset(); // Reset the form
+        // });
+        await refreshCache();
+        showPopupMessage(`Succesfully uploaded the movie`, true, 2000);
+    } catch (error) {
+        console.error("Error adding movie:", error);
+        // alert("Error adding movie. Please try again.");
+    }
+});
+
+function userRefresh() {
+    usernameDisplay = document.getElementById("usernameDisplay");
+    usernameDisplay.textContent = localStorage.getItem("username") || sessionStorage.getItem("username") || "Guest";
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    refreshCache();
+    userRefresh();
+
+    // Initialize logout button
+    const logoutBtn = document.getElementById("logoutBtn");
+    if (logoutBtn) {
+        logoutBtn.classList.add("nav-btn", "logout");
+    }
+});
+
+let longPressTimer;
+let targetMovieCard;
+
+document.getElementById("movieList").addEventListener("mousedown", (event) => {
+    if (event.target.closest(".movie-card")) {
+        targetMovieCard = event.target.closest(".movie-card");
+        longPressTimer = setTimeout(() => {
+            // Add a class to change the background color
+            if (targetMovieCard.classList.contains("watched")) {
+                targetMovieCard.classList.remove("watched");
+            } else {
+                targetMovieCard.classList.add("watched");
+            }
+        }, 1000); // 1 second
+    }
+});
+
+document.getElementById("movieList").addEventListener("mouseup", (event) => {
+    clearTimeout(longPressTimer);
+});
+
+document.getElementById("movieList").addEventListener("mouseleave", (event) => {
+    clearTimeout(longPressTimer);
+});
+
+document.addEventListener("click", (event) => {
+    const target = event.target;
+
+    // Category Dropdown
+    if (target.id === "categoryDropdown") {
+        event.preventDefault();
+        const dropdown = document.getElementById("categoryList");
+        dropdown.classList.toggle("show");
+    }
+    // Category Links
+    else if (target.closest("#categoryList a")) {
+        event.preventDefault();
+        const categoryId = target.dataset.category;
+        fetchMoviesByCategory(categoryId);
+        document.getElementById("categoryList").classList.remove("show");
+    }
+    // Movie Card
+    else if (target.closest(".movie-card")) {
+        const movieCard = target.closest(".movie-card");
+        const movieTitle = movieCard.querySelector("h3").textContent;
+        // showPopupMessage(`You clicked on: ${movieTitle}`, "success", 2000);
+    }
+    // Close dropdown when clicking outside
+    if (!target.matches("#categoryDropdown")) {
+        const dropdowns = document.getElementsByClassName("dropdown-content");
+        for (const dropdown of dropdowns) {
+            if (dropdown.classList.contains("show")) {
+                dropdown.classList.remove("show");
+            }
+        }
     }
 });

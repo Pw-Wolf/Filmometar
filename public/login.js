@@ -1,4 +1,10 @@
 document.addEventListener("DOMContentLoaded", () => {
+    // Check if user is already logged in
+    if (document.cookie.includes("sessionId")) {
+        window.location.href = "/";
+        return;
+    }
+
     const loginForm = document.getElementById("login");
     const errorMessageDiv = document.getElementById("errorMessage");
 
