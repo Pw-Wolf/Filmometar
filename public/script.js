@@ -1,6 +1,7 @@
 let cachedMovies = [];
 let cachedCategories = [];
 let userWatchedMovies = [];
+let usersIds = [];
 
 let currentFilter = "all";
 let currentCategoryId = null;
@@ -29,6 +30,16 @@ async function fetchCategories() {
         const response = await fetch("http://localhost:8080/api/categories");
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         cachedCategories = await response.json();
+    } catch (error) {
+        console.error("Error fetching categories:", error);
+    }
+}
+
+async function fetchIdsUsers() {
+    try {
+        const response = await fetch("http://localhost:8080/api/id_users");
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        usersIds = await response.json();
     } catch (error) {
         console.error("Error fetching categories:", error);
     }
@@ -73,9 +84,7 @@ function displayMovies(movies) {
         const category = cachedCategories.find((cat) => cat.id === movie.genre_id);
         const categoryName = category ? category.name : "Unknown Category";
 
-        let username;
-        username = localStorage.getItem("username");
-        if (!username) username = sessionStorage.getItem("username");
+        const username = localStorage.getItem("username") || sessionStorage.getItem("username");
 
         const movieCard = document.createElement("div");
         movieCard.className = "movie-card";
@@ -94,7 +103,7 @@ function displayMovies(movies) {
             </div>
             <div>
                 <p>Category: ${categoryName}</p>
-                <p>Added By: ${username}</p>
+                <p>Added By: ${usersIds[movie.author_id]}</p>
             </div>
             <p class="movie-card-description">${movie.description}</p>
         `;
@@ -105,8 +114,10 @@ function displayMovies(movies) {
             deleteMovie(movieId);
         });
 
-        movieCard.addEventListener("mouseenter", () => showDeleteButton(movieCard));
-        movieCard.addEventListener("mouseleave", () => hideDeleteButton(movieCard));
+        if (username === usersIds[movie.author_id]) {
+            movieCard.addEventListener("mouseenter", () => showDeleteButton(movieCard));
+            movieCard.addEventListener("mouseleave", () => hideDeleteButton(movieCard));
+        }
 
         movieList.appendChild(movieCard);
     });
@@ -165,7 +176,8 @@ async function fetchMoviesByCategory(categoryId) {
 
 // Add a function to refresh the cache if needed
 async function refreshCache() {
-    await Promise.all([fetchMovies(), fetchCategories()]);
+    await Promise.all([fetchMovies(), fetchCategories(), fetchIdsUsers()]);
+    console.log(usersIds);
     displayMovies(cachedMovies);
     displayCategories(cachedCategories);
 }
@@ -519,6 +531,7 @@ document.addEventListener("click", (event) => {
         }
     }
 });
+
 async function fetchWatchedMovies() {
     try {
         const userId = localStorage.getItem("id") || sessionStorage.getItem("id");

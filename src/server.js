@@ -4,7 +4,7 @@ const fs = require("fs");
 const path = require("path");
 const cookie = require("cookie");
 
-const { createDatabase, insertData, readData, updateData, deleteData, verifyUser, checkSession, filmsWatched, filmsWatchedByUser } = require("./engine.js");
+const { createDatabase, insertData, readData, updateData, deleteData, verifyUser, checkSession, filmsWatched, filmsWatchedByUser, getAllUserIds } = require("./engine.js");
 
 const db = createDatabase();
 
@@ -145,6 +145,11 @@ const server = htpp.createServer((req, res) => {
                 const watchedFilms = filmsWatchedByUser(db, userId);
                 res.writeHead(200, { "Content-Type": "application/json" });
                 res.end(JSON.stringify(watchedFilms));
+                return;
+            } else if (resource === "id_users") {
+                const data = getAllUserIds(db);
+                res.writeHead(200, { "Content-Type": "application/json" });
+                res.end(JSON.stringify(data));
                 return;
             }
             const read = readData(db, resource);

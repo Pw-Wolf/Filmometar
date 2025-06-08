@@ -286,6 +286,16 @@ function getAllWatchedFilms(db, userId) {
     return watchedFilms;
 }
 
+function getAllUserIds(db) {
+    const query = db.prepare("SELECT id, username FROM users");
+    const users = query.all();
+    const userMap = {};
+    users.forEach((user) => {
+        userMap[parseInt(user.id)] = user.username; // Parse user.id to integer
+    });
+    return userMap;
+}
+
 module.exports = {
     createDatabase,
     readData,
@@ -297,6 +307,7 @@ module.exports = {
     getAllWatchedFilms,
     filmsWatched,
     filmsWatchedByUser,
+    getAllUserIds,
 };
 
 function createDefualtCategories(db) {
