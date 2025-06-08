@@ -4,7 +4,7 @@ const fs = require("fs");
 const path = require("path");
 const cookie = require("cookie");
 
-const { createDatabase, insertData, readData, updateData, deleteData, verifyUser } = require("./engine.js");
+const { createDatabase, insertData, readData, updateData, deleteData, verifyUser, checkSession, filmsWatched, filmsWatchedByUser } = require("./engine.js");
 
 const db = createDatabase();
 
@@ -24,6 +24,8 @@ const mimeType = {
 const server = htpp.createServer((req, res) => {
     const { method } = req;
     const pathname = parse(req.url).pathname;
+
+    const html = fs.readFileSync(path.join(__dirname, "..", "public", "index.html"), "utf8");
 
     console.log(`Received ${method} request for ${pathname}`);
 
@@ -80,19 +82,71 @@ const server = htpp.createServer((req, res) => {
 
         // Protected routes - check authentication
         const cookies = cookie.parse(req.headers.cookie || "");
+        let userVerify = true;
         if (!cookies.sessionId && pathname !== "/login") {
             console.log(`Unauthorized access attempt ${pathname}`);
             res.writeHead(302, { Location: "/login" });
             res.end();
             return;
+        } else if (cookies.sessionId && pathname === "/") {
+            returned = checkSession(db, cookies.sessionId);
+            if (!returned) {
+                userVerify = false;
+                console.log(`Invalid session ID: ${cookies.sessionId}`);
+                res.writeHead(302, { Location: "/login" });
+                res.end();
+                return;
+            }
+            res.writeHead(200, { "Content-Type": "text/html" });
+            res.end(html);
+            return;
         }
         // Handle protected routes
         if (pathname === "/") {
             res.writeHead(200, { "Content-Type": "text/html" });
-            const html = fs.readFileSync(path.join(__dirname, "..", "public", "index.html"), "utf8");
             res.end(html);
+            return; // Add this line to stop further execution
         } else if (pathname.startsWith("/api")) {
             const resource = pathname.split("/").pop();
+            const cookies = cookie.parse(req.headers.cookie || "");
+            let userId = null;
+
+            if (cookies.sessionId) {
+                const sessionResult = checkSession(db, cookies.sessionId);
+                if (sessionResult) {
+                    // Assuming checkSession returns the user ID
+                    userId = sessionResult.id;
+                } else {
+                    // Invalid session
+                    res.writeHead(401, { "Content-Type": "application/json" });
+                    res.end(JSON.stringify({ error: "Unauthorized - Invalid Session" }));
+                    return;
+                }
+            } else {
+                // No session
+                console.log(`Unauthorized access attempt ${pathname}`);
+                res.writeHead(401, { "Content-Type": "application/json" });
+                res.end(JSON.stringify({ error: "Unauthorized - No Session" }));
+                return;
+            }
+
+            if (resource === "films-watched") {
+                if (!userId) {
+                    res.writeHead(401, { "Content-Type": "application/json" });
+                    res.end(JSON.stringify({ error: "Unauthorized - No User ID" }));
+                    return;
+                }
+                const watchedFilms = filmsWatchedByUser(db, userId);
+                console.log("111111111111");
+                res.writeHead(200, { "Content-Type": "application/json" });
+                res.end(JSON.stringify(watchedFilms));
+                return;
+            } else if (resource === "user_films") {
+                const watchedFilms = filmsWatchedByUser(db, userId);
+                res.writeHead(200, { "Content-Type": "application/json" });
+                res.end(JSON.stringify(watchedFilms));
+                return;
+            }
             const read = readData(db, resource);
             res.writeHead(200, { "Content-Type": "application/json" });
             res.end(JSON.stringify(read));
@@ -133,22 +187,37 @@ const server = htpp.createServer((req, res) => {
                             res.end(JSON.stringify({ message: "Registration successful" }));
                         }
                     } else if (resource === "login") {
+                        const cTime = Date.now() + 2 * 60 * 60 * 1000; // GMT+2
                         const { username, password } = data;
+
+                        const sessionId = btoa(`${username}${cTime}`);
                         const user = verifyUser(db, username, password);
-                        console.log(`User verification result: ${JSON.stringify(user)}`);
+
+                        // Check if a session already exists for this user
+                        const existingSession = readData(db, "valid_id_sessions").find((session) => session.user_id === user.id);
+                        // console.log(user);
+                        const dataDB = { session_id: sessionId, id: user.id, created_at: cTime };
+                        // console.log(dataDB);
+                        if (existingSession) {
+                            // Update the existing session with the new session ID
+                            updateData(db, "valid_id_sessions", dataDB);
+                            console.log(`Updated session ID for user ${user.id} to ${sessionId}`);
+                        } else {
+                            // Insert a new session
+                            insertData(db, "valid_id_sessions", dataDB);
+                            console.log(`Created new session for user ${user.id} with session ID ${sessionId}`);
+                        }
+
                         if (!user) {
                             res.writeHead(401, { "Content-Type": "application/json" });
                             res.end(JSON.stringify({ error: "Invalid username or password" }));
                             return;
                         }
-                        const cTime = Date.now();
-                        const sessionId = btoa(`${username}${cTime}`);
 
                         if (user) {
                             // Set session cookie
                             res.setHeader(
                                 "Set-Cookie",
-
                                 cookie.serialize("sessionId", sessionId, {
                                     httpOnly: true,
                                     maxAge: 60 * 60 * 24 * 30,
@@ -161,6 +230,33 @@ const server = htpp.createServer((req, res) => {
                             res.writeHead(401, { "Content-Type": "application/json" });
                             res.end(JSON.stringify({ error: "Invalid username or password" }));
                             return;
+                        }
+                    } else if (resource === "valid_id_sessions") {
+                        const { session_id, user_id } = data;
+
+                        const sessionData = {
+                            session_id: session_id,
+                            user_id: user_id,
+                        };
+
+                        const insertResult = insertData(db, "valid_id_sessions", sessionData);
+
+                        if (insertResult.error) {
+                            res.writeHead(500, { "Content-Type": "application/json" });
+                            res.end(JSON.stringify({ error: insertResult.error }));
+                        } else {
+                            res.writeHead(201, { "Content-Type": "application/json" });
+                            res.end(JSON.stringify({ message: "Session created successfully" }));
+                        }
+                    } else if (resource === "update-watched-status") {
+                        const { user_id, film_id, watched } = data;
+                        watchedData = { id: user_id, film_id: film_id, watched: watched ? 1 : 0 };
+                        try {
+                            filmsWatched(db, watchedData);
+                            res.writeHead(201, { "Content-Type": "application/json" });
+                            res.end(JSON.stringify({ message: "Watched status sucessfuly saved" }));
+                        } catch (error) {
+                            console.error(`Error updating watched status: ${error.message}`);
                         }
                     } else {
                         console.log(`Inserting data into ${resource}`);
@@ -177,6 +273,7 @@ const server = htpp.createServer((req, res) => {
                 } catch (error) {
                     res.writeHead(400, { "Content-Type": "application/json" });
                     res.end(JSON.stringify({ error: "Invalid request format" }));
+                    console.error(`Error parsing JSON: ${error.message}`);
                 }
             });
         } else {

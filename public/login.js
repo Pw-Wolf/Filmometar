@@ -1,9 +1,13 @@
 document.addEventListener("DOMContentLoaded", () => {
+    // Clear localStorage and sessionStorage before login attempt
+    localStorage.clear();
+    sessionStorage.clear();
+
     // Check if user is already logged in
-    if (document.cookie.includes("sessionId")) {
-        window.location.href = "/";
-        return;
-    }
+    // if (document.cookie.includes("sessionId")) {
+    //     window.location.href = "/";
+    //     return;
+    // }
 
     const loginForm = document.getElementById("login");
     const errorMessageDiv = document.getElementById("errorMessage");
