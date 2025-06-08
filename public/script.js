@@ -2,6 +2,11 @@ let cachedMovies = [];
 let cachedCategories = [];
 let userWatchedMovies = [];
 
+let currentFilter = "all";
+let currentCategoryId = null;
+
+const genresList = ["Action", "Adventure", "Animation", "Comedy", "Crime", "Documentary", "Drama", "Horror/Thriller", "Mystery", "Romance", "Sci-Fi", "Adult"];
+
 async function fetchMovies() {
     try {
         const response = await fetch("http://localhost:8080/api/films");
@@ -29,7 +34,20 @@ async function fetchCategories() {
     }
 }
 
-let currentFilter = "all";
+let hoverTimer;
+
+function showDeleteButton(movieCard) {
+    hoverTimer = setTimeout(() => {
+        const deleteButton = movieCard.querySelector(".delete-movie");
+        deleteButton.classList.remove("hidden");
+    }, 500);
+}
+
+function hideDeleteButton(movieCard) {
+    clearTimeout(hoverTimer);
+    const deleteButton = movieCard.querySelector(".delete-movie");
+    deleteButton.classList.add("hidden");
+}
 
 function displayMovies(movies) {
     const movieList = document.getElementById("movieList");
@@ -37,14 +55,18 @@ function displayMovies(movies) {
 
     let filtered = movies;
     if (currentFilter === "watched") {
-        filtered = movies.filter((m) => m.watched === 1 || m.watched === true);
+        filtered = movies.filter((m) => (m.watched === 1 || m.watched === true) && (m.genre_id === currentCategoryId || currentCategoryId === null));
     } else if (currentFilter === "notwatched") {
-        filtered = movies.filter((m) => !m.watched || m.watched === 0);
+        filtered = movies.filter((m) => (!m.watched || m.watched === 0) && (m.genre_id === currentCategoryId || currentCategoryId === null));
     }
 
     filtered.forEach((movie) => {
         if (movie.description === null) {
             movie.description = "No description available.";
+        }
+
+        if (movie.genre_id !== currentCategoryId && currentCategoryId !== null) {
+            return; // Skip movies that don't match the current category
         }
 
         // Pronađi kategoriju za film
@@ -63,10 +85,12 @@ function displayMovies(movies) {
 
         movieCard.innerHTML = `
             <h7 class="movie-id hidden">${movie.id}</h7>
+            <div class="delete-movie hidden">&#x2715;</div>
             <h3>${movie.name}</h3>
             <div>
                 <p>Year: ${movie.year}</p>
                 <p>Rating: ${movie.rating}/10</p>
+                <p>Genre: ${movie.genre}<p>
             </div>
             <div>
                 <p>Category: ${categoryName}</p>
@@ -74,8 +98,42 @@ function displayMovies(movies) {
             </div>
             <p class="movie-card-description">${movie.description}</p>
         `;
+        const deleteButton = movieCard.querySelector(".delete-movie");
+        deleteButton.addEventListener("click", (event) => {
+            event.stopPropagation(); // Prevent click from triggering movie card click
+            const movieId = movieCard.querySelector("h7").textContent;
+            deleteMovie(movieId);
+        });
+
+        movieCard.addEventListener("mouseenter", () => showDeleteButton(movieCard));
+        movieCard.addEventListener("mouseleave", () => hideDeleteButton(movieCard));
+
         movieList.appendChild(movieCard);
     });
+}
+
+async function deleteMovie(movieId) {
+    try {
+        const response = await fetch(`/api/films`, {
+            method: "DELETE",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ id: parseInt(movieId) }),
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        // console.log("Movie deleted:", result);
+        showPopupMessage("Movie deleted successfully!", true, 2000);
+        await refreshCache(); // Refresh the movie list
+    } catch (error) {
+        console.error("Error deleting movie:", error);
+        showPopupMessage("Error deleting movie.", false, 2000);
+    }
 }
 
 async function fetchMoviesByCategory(categoryId) {
@@ -84,15 +142,23 @@ async function fetchMoviesByCategory(categoryId) {
     if (categoryId === null || categoryId === "null") {
         // Check for null or "null" string
         categoryDisplay.textContent = "All Movies";
+        currentFilter = "all"; // Reset the filter when showing all movies
+        currentCategoryId = null; // Reset the current category ID
         displayMovies(cachedMovies);
     } else {
         // Važno: genre_id u bazi je numerički, pa moramo osigurati isti tip
         const numericCategoryId = parseInt(categoryId);
-        const filteredMovies = cachedMovies.filter((movie) => movie.genre_id === numericCategoryId);
+        let filteredMovies = cachedMovies.filter((movie) => movie.genre_id === numericCategoryId);
 
         const category = cachedCategories.find((cat) => cat.id === numericCategoryId);
         categoryDisplay.textContent = category ? `Category: ${category.name}` : "Unknown Category";
 
+        if (currentFilter === "watched") {
+            filteredMovies = filteredMovies.filter((m) => m.watched === 1 || m.watched === true);
+        } else if (currentFilter === "notwatched") {
+            filteredMovies = filteredMovies.filter((m) => !m.watched || m.watched === 0);
+        }
+        currentCategoryId = numericCategoryId; // Update the current category ID
         displayMovies(filteredMovies);
     }
 }
@@ -152,11 +218,22 @@ function populateCategorySelect() {
         select.appendChild(option);
     });
 }
+function populateGenreSelect() {
+    const select = document.getElementById("movieGenre");
+    select.innerHTML = ""; // Clear existing options
+    genresList.forEach((genre) => {
+        const option = document.createElement("option");
+        option.value = genre; // Use genre name as value
+        option.textContent = genre; // Display genre name
+        select.appendChild(option);
+    });
+}
 
 // Show modal
 addMovieBtn.onclick = function () {
     modal.style.display = "block";
     populateCategorySelect();
+    populateGenreSelect();
 };
 
 // Close modal
@@ -219,7 +296,7 @@ addMovieButton.addEventListener("click", async (e) => {
         showPopupMessage(`Title cannot be empty`, false, 2000);
         return;
     }
-    console.log("User ID:", userId);
+    // console.log("User ID:", userId);
 
     const movieData = {
         name: document.getElementById("movieTitle").value,
@@ -227,8 +304,11 @@ addMovieButton.addEventListener("click", async (e) => {
         description: description,
         rating: parseInt(document.getElementById("movieRating").value),
         genre_id: parseInt(document.getElementById("movieCategory").value),
+        genre: document.getElementById("movieGenre").value,
         author_id: parseInt(userId),
     };
+
+    // console.log(movieData);
 
     // Check if year, rating, and genre_id are valid numbers
     if (isNaN(movieData.year)) {
@@ -363,7 +443,7 @@ async function sendWatchedStatus(movieCard, watched) {
     // const watchedStatus = movieCard.classList.contains("watched") ? 1 : 0;
 
     // Here you would send the watched status to the server
-    console.log(`Sending watched status for "${movieId}": ${watched}`);
+    // console.log(`Sending watched status for "${movieId}": ${watched}`);
     userId = localStorage.getItem("id");
     if (!userId) userId = sessionStorage.getItem("id");
     // Example fetch request (you need to implement the endpoint on your server)
@@ -389,7 +469,7 @@ async function sendWatchedStatus(movieCard, watched) {
         })
         .then((data) => {
             // Handle the response from the server
-            console.log("Watched status updated successfully:", data);
+            // console.log("Watched status updated successfully:", data);
             showPopupMessage("Watched status updated!", true, 2000); // Show success message
             refreshCache();
         })
@@ -443,7 +523,7 @@ async function fetchWatchedMovies() {
     try {
         const userId = localStorage.getItem("id") || sessionStorage.getItem("id");
         if (!userId) {
-            console.log("User ID not found.");
+            // console.log("User ID not found.");
             return []; // Return an empty array if user ID is not found
         }
 
@@ -459,7 +539,6 @@ async function fetchWatchedMovies() {
         }
 
         const watchedMovies = await response.json();
-        console.log("Watched movies:", watchedMovies);
         return watchedMovies; // Return the watched movies
     } catch (error) {
         console.error("Error fetching watched movies:", error);

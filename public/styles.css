@@ -38,6 +38,13 @@
 
     --red: #ff4444;
 
+    --red-delete: #ef5350; /* Crvena boja za delete gumb (blago svjetlija, kao na slici) */
+    --red-delete-hover: #d32f2f; /* Tamnija crvena za hover */
+    --red-delete-active: #b71c1c; /* Još tamnija crvena za active */
+    --glass-border-light: rgba(255, 255, 255, 0.3); /* Svijetli prozirni obrub za sjaj */
+    --glass-shadow: rgba(0, 0, 0, 0.4); /* Tamnija sjena za dubinu */
+    --text-glow-light: rgba(255, 255, 255, 0.7); /* Svijetli sjaj za 'x' */
+
     /* 
     --text: #f6eef0;
     --background: #190b0f;
@@ -262,7 +269,7 @@ header h1 {
 }
 
 .hidden {
-    display: none;
+    display: none !important;
 }
 
 h1 {
@@ -634,4 +641,101 @@ footer p {
     background: linear-gradient(45deg, var(--accent), var(--primary));
     color: var(--background);
     transform: translateY(-2px) scale(1.05);
+}
+
+/* Chrome, Safari, Edge, Opera */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Firefox */
+input[type="number"] {
+    -moz-appearance: textfield;
+}
+
+/* .delete-movie {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    color: var(--red);
+    font-size: 1.5em;
+    cursor: pointer;
+    z-index: 10;
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 50%;
+    width: 25px;
+    height: 25px;
+    text-align: center;
+    line-height: 25px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding-left: 4px;
+}
+
+.delete-movie:hover {
+    color: white;
+} */
+
+.delete-movie {
+    /* VELIČINA I CENTRIRANJE - ZADRŽANO IZ VAŠEG POSTOJEĆEG KODA */
+    width: 25px;
+    height: 25px;
+    text-align: center;
+    line-height: 25px; /* Poravnavanje za &#x2715; */
+
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    flex-wrap: wrap;
+    flex-direction: column;
+    align-content: space-around;
+
+    padding-left: 0px; /* Uklanjamo padding-left, flexbox se brine za centriranje */
+
+    /* POZICIONIRANJE - ZADRŽANO IZ VAŠEG POSTOJEĆEG KODA (ako parent ima position: relative) */
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 10;
+    /* padding-left: 10px; */
+
+    /* VIZUALNI IZGLED - NOVE PROMJENE ZA GLASS LOOK */
+    /* background-color: var(--red-delete);  */
+    color: white; /* Boja 'x' simbola */
+    border-radius: 50%; /* Kružni oblik */
+    cursor: pointer;
+
+    /* Efekt sjaja i dubine */
+    box-shadow: 0 3px 8px var(--glass-shadow);
+    /* border: 1px solid var(--glass-border-light); */
+
+    /* Stil za 'x' simbol */
+    font-size: 1em; /* Veličina 'x' simbola, kao i prije */
+    font-weight: bold; /* Podebljani 'x' */
+    text-shadow: 0 0 5px var(--text-glow-light);
+
+    /* Glatke tranzicije za hover/active efekte */
+    /* opacity: 0;
+    transition: opacity 0.3s ease-in-out; */
+    transition: background-color 3s ease-in-out, box-shadow 3s ease-in-out, transform 3s ease-in-out, border-color 3s ease-in-out;
+}
+
+.delete-movie:hover {
+    /* background-color: var(--red-delete-hover);
+    box-shadow: 0 5px 12px var(--glass-shadow); */
+    color: var(--red-delete-hover);
+    /* background-color: var(--red-delete-hover);
+    box-shadow: 0 5px 12px var(--glass-shadow); */
+    transform: scale(1.08); /* Blago povećanje na hover */
+    /* border-color: rgba(255, 255, 255, 0.5);  */
+}
+
+.delete-movie:active {
+    background-color: var(--red-delete-active); /* Još tamnija crvena na active */
+    box-shadow: 0 1px 3px var(--glass-shadow); /* Manja sjena na active (utisnut efekt) */
+    transform: scale(0.95); /* Blago smanjenje na active */
+    border-color: rgba(255, 255, 255, 0.2); /* Tamniji obrub na active */
 }

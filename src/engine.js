@@ -2,6 +2,7 @@ const { DatabaseSync } = require("node:sqlite");
 const fs = require("fs");
 
 function createDatabase() {
+    const fileExists = fs.existsSync("./models/data.sqlite");
     const db = new DatabaseSync("./models/data.sqlite");
     db.exec(`
         CREATE TABLE IF NOT EXISTS users (
@@ -19,8 +20,9 @@ function createDatabase() {
 
         CREATE TABLE IF NOT EXISTS films (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
+            name TEXT NOT NULL UNIQUE,
             rating INT NOT NULL,
+            genre TEXT,
             year INTEGER,
             genre_id INT,
             author_id INT,
@@ -45,7 +47,6 @@ function createDatabase() {
             FOREIGN KEY (id) REFERENCES users(id)
         );
     `);
-    const fileExists = fs.existsSync("./models/data.sqlite");
     if (!fileExists) {
         createDefualtCategories(db);
     }
@@ -103,11 +104,6 @@ function filmsWatched(db, data) {
 
 function filmsWatchedByUser(db, userId) {
     if (!userId) throw new Error("User ID is required to get watched films.");
-    // const query = db.prepare(`
-    //     SELECT f.* FROM films f
-    //     JOIN user_films uf ON f.id = uf.film_id
-    //     WHERE uf.id = ? AND uf.watched = 1
-    // `);
     const query = db.prepare(`
         SELECT * FROM user_films
         WHERE id = ? AND watched = 1
@@ -218,6 +214,12 @@ function deleteData(db, tableName, condition) {
     }
     try {
         const [columnName, value] = Object.entries(condition)[0];
+
+        if (tableName === "films") {
+            const deleteUserFilmsQuery = `DELETE FROM user_films WHERE film_id = ?`;
+            const deleteUserFilmsStatement = db.prepare(deleteUserFilmsQuery);
+            deleteUserFilmsStatement.run(value);
+        }
 
         const query = `DELETE FROM ${tableName} WHERE ${columnName} = ?`;
         const statement = db.prepare(query);
