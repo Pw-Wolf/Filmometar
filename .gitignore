@@ -1,1 +1,2 @@
-./models/data.sqlite
+models/data.sqlite
+src/dbConfig.js
