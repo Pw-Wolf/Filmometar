@@ -1,38 +1,76 @@
-const htpp = require("http");
+const http = require("http"); // Fixed 'htpp' to 'http'
 const { parse } = require("url");
 const fs = require("fs");
 const path = require("path");
 const cookie = require("cookie");
 
-const { createDatabase, insertData, readData, updateData, deleteData, verifyUser, checkSession, filmsWatched, filmsWatchedByUser, getAllUserIds } = require("./engine.js");
+// We only import functions, the 'db' object (pool) is not passed
+// but functions in 'database.js' use it directly
+const {
+    createDatabase,
+    insertData,
+    readData,
+    updateData,
+    deleteData,
+    verifyUser,
+    checkSession,
+    filmsWatched,
+    filmsWatchedByUser,
+    getAllUserIds,
+    pool, // Import the pool as well for potential server shutdown closing
+} = require("./database.js");
 
-const db = createDatabase();
+// Initialize the database ONCE at the start of the application
+async function initializeDatabase() {
+    try {
+        await createDatabase();
+        console.log("Database initialized successfully.");
+    } catch (error) {
+        console.error("Failed to initialize database:", error);
+        process.exit(1); // Exit the process if the database isn't initialized
+    }
+}
+
+initializeDatabase(); // Call initialization on server startup
 
 const port = 8080;
 
-function verifySession(req) {
+// The verifySession function must be asynchronous because checkSession now returns a Promise
+async function verifySession(req) {
     const cookies = cookie.parse(req.headers.cookie || "");
-    return cookies.sessionId ? true : false;
+    if (!cookies.sessionId) {
+        return false;
+    }
+    // checkSession is now an asynchronous function
+    const session = await checkSession(cookies.sessionId);
+    return !!session; // Returns true if session exists, false otherwise
 }
 
 const mimeType = {
     ".html": "text/html",
     ".js": "application/javascript",
     ".css": "text/css",
+    ".ico": "image/x-icon", // Added favicon type
 };
 
-const server = htpp.createServer((req, res) => {
+const server = http.createServer(async (req, res) => {
+    // Server handler must be async
     const { method } = req;
     const pathname = parse(req.url).pathname;
-
-    const html = fs.readFileSync(path.join(__dirname, "..", "public", "index.html"), "utf8");
 
     console.log(`Received ${method} request for ${pathname}`);
 
     // Add CORS headers
     res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS"); // Added PUT, DELETE, OPTIONS
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+    // Handle OPTIONS preflight requests
+    if (method === "OPTIONS") {
+        res.writeHead(204); // No Content
+        res.end();
+        return;
+    }
 
     if (method === "GET") {
         // Public routes that don't need authentication check
@@ -54,7 +92,7 @@ const server = htpp.createServer((req, res) => {
                 });
                 return;
             } else {
-                place = pathname.substring(1);
+                const place = pathname.substring(1);
                 fs.readFile(`./public/${place}.html`, (err, data) => {
                     if (err) {
                         res.writeHead(500);
@@ -82,79 +120,55 @@ const server = htpp.createServer((req, res) => {
 
         // Protected routes - check authentication
         const cookies = cookie.parse(req.headers.cookie || "");
-        let userVerify = true;
-        if (!cookies.sessionId && pathname !== "/login") {
+        let isAuthenticated = false;
+        let userSession = null;
+
+        if (cookies.sessionId) {
+            userSession = await checkSession(cookies.sessionId); // checkSession is async
+            if (userSession) {
+                isAuthenticated = true;
+            }
+        }
+
+        if (!isAuthenticated && pathname !== "/login") {
             console.log(`Unauthorized access attempt ${pathname}`);
             res.writeHead(302, { Location: "/login" });
             res.end();
             return;
-        } else if (cookies.sessionId && pathname === "/") {
-            returned = checkSession(db, cookies.sessionId);
-            if (!returned) {
-                userVerify = false;
-                console.log(`Invalid session ID: ${cookies.sessionId}`);
-                res.writeHead(302, { Location: "/login" });
-                res.end();
-                return;
-            }
+        }
+
+        if (pathname === "/") {
+            const html = fs.readFileSync(path.join(__dirname, "..", "public", "index.html"), "utf8");
             res.writeHead(200, { "Content-Type": "text/html" });
             res.end(html);
             return;
-        }
-        // Handle protected routes
-        if (pathname === "/") {
-            res.writeHead(200, { "Content-Type": "text/html" });
-            res.end(html);
-            return; // Add this line to stop further execution
         } else if (pathname.startsWith("/api")) {
             const resource = pathname.split("/").pop();
-            const cookies = cookie.parse(req.headers.cookie || "");
-            let userId = null;
+            const userId = userSession ? userSession.id : null; // Get userId from the verified session
 
-            if (cookies.sessionId) {
-                const sessionResult = checkSession(db, cookies.sessionId);
-                if (sessionResult) {
-                    // Assuming checkSession returns the user ID
-                    userId = sessionResult.id;
-                } else {
-                    // Invalid session
-                    res.writeHead(401, { "Content-Type": "application/json" });
-                    res.end(JSON.stringify({ error: "Unauthorized - Invalid Session" }));
-                    return;
-                }
-            } else {
-                // No session
-                console.log(`Unauthorized access attempt ${pathname}`);
+            if (!userId && resource !== "login" && resource !== "users") {
+                // We don't check userId for login and registration
                 res.writeHead(401, { "Content-Type": "application/json" });
-                res.end(JSON.stringify({ error: "Unauthorized - No Session" }));
+                res.end(JSON.stringify({ error: "Unauthorized - No User ID or Invalid Session" }));
                 return;
             }
 
-            if (resource === "films-watched") {
-                if (!userId) {
-                    res.writeHead(401, { "Content-Type": "application/json" });
-                    res.end(JSON.stringify({ error: "Unauthorized - No User ID" }));
-                    return;
+            try {
+                let data = null;
+                if (resource === "films-watched" || resource === "user_films") {
+                    data = await filmsWatchedByUser(userId); // Call asynchronous function
+                } else if (resource === "id_users") {
+                    data = await getAllUserIds(); // Call asynchronous function
+                } else {
+                    data = await readData(resource); // Call asynchronous function
                 }
-                const watchedFilms = filmsWatchedByUser(db, userId);
-                console.log("111111111111");
-                res.writeHead(200, { "Content-Type": "application/json" });
-                res.end(JSON.stringify(watchedFilms));
-                return;
-            } else if (resource === "user_films") {
-                const watchedFilms = filmsWatchedByUser(db, userId);
-                res.writeHead(200, { "Content-Type": "application/json" });
-                res.end(JSON.stringify(watchedFilms));
-                return;
-            } else if (resource === "id_users") {
-                const data = getAllUserIds(db);
                 res.writeHead(200, { "Content-Type": "application/json" });
                 res.end(JSON.stringify(data));
-                return;
+            } catch (error) {
+                console.error(`Error handling GET /api/${resource}:`, error);
+                res.writeHead(500, { "Content-Type": "application/json" });
+                res.end(JSON.stringify({ error: "Internal Server Error" }));
             }
-            const read = readData(db, resource);
-            res.writeHead(200, { "Content-Type": "application/json" });
-            res.end(JSON.stringify(read));
         } else {
             res.writeHead(404, { "Content-Type": "text/plain" });
             res.end("Not Found");
@@ -169,49 +183,34 @@ const server = htpp.createServer((req, res) => {
             });
 
             req.on("end", async () => {
+                // We must wait for the request body to be parsed before processing
                 try {
                     const data = JSON.parse(body);
 
                     if (resource === "users") {
                         // Check if username already exists
-                        const existingUser = readData(db, "users").find((user) => user.username === data.username);
-
-                        if (existingUser) {
+                        const existingUser = await readData("users", { username: data.username }); // Asynchronous call
+                        if (existingUser.length > 0) {
                             res.writeHead(400, { "Content-Type": "application/json" });
                             res.end(JSON.stringify({ error: "Username already exists" }));
                             return;
                         }
 
                         // Insert new user
-                        const result = insertData(db, "users", data);
-                        if (result.error) {
+                        const result = await insertData("users", data); // Asynchronous call
+                        if (result && result.error) {
+                            // Error check
                             res.writeHead(400, { "Content-Type": "application/json" });
                             res.end(JSON.stringify({ error: result.error }));
                         } else {
                             res.writeHead(201, { "Content-Type": "application/json" });
-                            res.end(JSON.stringify({ message: "Registration successful" }));
+                            res.end(JSON.stringify({ message: "Registration successful", user: result })); // Return user data as well
                         }
                     } else if (resource === "login") {
-                        const cTime = Date.now() + 2 * 60 * 60 * 1000; // GMT+2
+                        const cTime = Date.now(); // Use current time
                         const { username, password } = data;
 
-                        const sessionId = btoa(`${username}${cTime}`);
-                        const user = verifyUser(db, username, password);
-
-                        // Check if a session already exists for this user
-                        const existingSession = readData(db, "valid_id_sessions").find((session) => session.user_id === user.id);
-                        // console.log(user);
-                        const dataDB = { session_id: sessionId, id: user.id, created_at: cTime };
-                        // console.log(dataDB);
-                        if (existingSession) {
-                            // Update the existing session with the new session ID
-                            updateData(db, "valid_id_sessions", dataDB);
-                            console.log(`Updated session ID for user ${user.id} to ${sessionId}`);
-                        } else {
-                            // Insert a new session
-                            insertData(db, "valid_id_sessions", dataDB);
-                            console.log(`Created new session for user ${user.id} with session ID ${sessionId}`);
-                        }
+                        const user = await verifyUser(username, password); // Asynchronous call
 
                         if (!user) {
                             res.writeHead(401, { "Content-Type": "application/json" });
@@ -219,55 +218,53 @@ const server = htpp.createServer((req, res) => {
                             return;
                         }
 
-                        if (user) {
-                            // Set session cookie
-                            res.setHeader(
-                                "Set-Cookie",
-                                cookie.serialize("sessionId", sessionId, {
-                                    httpOnly: true,
-                                    maxAge: 60 * 60 * 24 * 30,
-                                })
-                            );
-                            console.log(`Set-Cookie: sessionId=${sessionId}`);
-                            res.writeHead(200, { "Content-Type": "application/json" });
-                            res.end(JSON.stringify({ message: "Login successful", sessionId: sessionId, user }));
+                        const sessionId = btoa(`${username}${cTime}`); // Base64 encode
+                        const sessionData = { id: user.id, session_id: sessionId, created_at: new Date(cTime).toISOString() }; // PostgreSQL prefers ISO format
+
+                        // Check if a session already exists for this user
+                        const existingSession = await readData("valid_id_sessions", { id: user.id }); // Asynchronous call
+
+                        if (existingSession.length > 0) {
+                            // Update the existing session with the new session ID
+                            await updateData("valid_id_sessions", { id: user.id, session_id: sessionId }); // Asynchronous call
+                            console.log(`Updated session ID for user ${user.id} to ${sessionId}`);
                         } else {
-                            res.writeHead(401, { "Content-Type": "application/json" });
-                            res.end(JSON.stringify({ error: "Invalid username or password" }));
-                            return;
+                            // Insert a new session
+                            await insertData("valid_id_sessions", sessionData); // Asynchronous call
+                            console.log(`Created new session for user ${user.id} with session ID ${sessionId}`);
                         }
-                    } else if (resource === "valid_id_sessions") {
-                        const { session_id, user_id } = data;
 
-                        const sessionData = {
-                            session_id: session_id,
-                            user_id: user_id,
-                        };
-
-                        const insertResult = insertData(db, "valid_id_sessions", sessionData);
-
-                        if (insertResult.error) {
-                            res.writeHead(500, { "Content-Type": "application/json" });
-                            res.end(JSON.stringify({ error: insertResult.error }));
-                        } else {
-                            res.writeHead(201, { "Content-Type": "application/json" });
-                            res.end(JSON.stringify({ message: "Session created successfully" }));
-                        }
+                        // Set session cookie
+                        res.setHeader(
+                            "Set-Cookie",
+                            cookie.serialize("sessionId", sessionId, {
+                                httpOnly: true,
+                                maxAge: 60 * 60 * 24 * 30, // 30 days
+                                path: "/", // Important: Cookie available throughout the domain
+                            })
+                        );
+                        console.log(`Set-Cookie: sessionId=${sessionId}`);
+                        res.writeHead(200, { "Content-Type": "application/json" });
+                        res.end(JSON.stringify({ message: "Login successful", sessionId: sessionId, user }));
                     } else if (resource === "update-watched-status") {
                         const { user_id, film_id, watched } = data;
-                        watchedData = { id: user_id, film_id: film_id, watched: watched ? 1 : 0 };
+                        const watchedStatus = watched ? true : false; // PostgreSQL boolean is true/false
+                        const watchedData = { id: user_id, film_id: film_id, watched: watchedStatus };
                         try {
-                            filmsWatched(db, watchedData);
+                            await filmsWatched(watchedData); // Asynchronous call
                             res.writeHead(201, { "Content-Type": "application/json" });
-                            res.end(JSON.stringify({ message: "Watched status sucessfuly saved" }));
+                            res.end(JSON.stringify({ message: "Watched status successfully saved" }));
                         } catch (error) {
                             console.error(`Error updating watched status: ${error.message}`);
+                            res.writeHead(500, { "Content-Type": "application/json" });
+                            res.end(JSON.stringify({ error: "Failed to update watched status" }));
                         }
                     } else {
+                        // General route for insertData
                         console.log(`Inserting data into ${resource}`);
                         console.log(data);
-                        const result = insertData(db, resource, data);
-                        if (result.error) {
+                        const result = await insertData(resource, data); // Asynchronous call
+                        if (result && result.error) {
                             res.writeHead(400, { "Content-Type": "application/json" });
                             res.end(JSON.stringify({ error: result.error }));
                         } else {
@@ -278,7 +275,7 @@ const server = htpp.createServer((req, res) => {
                 } catch (error) {
                     res.writeHead(400, { "Content-Type": "application/json" });
                     res.end(JSON.stringify({ error: "Invalid request format" }));
-                    console.error(`Error parsing JSON: ${error.message}`);
+                    console.error(`Error parsing JSON or processing request: ${error.message}`);
                 }
             });
         } else {
@@ -293,12 +290,24 @@ const server = htpp.createServer((req, res) => {
                 body += chunk.toString();
             });
             req.on("end", async () => {
-                const data = JSON.parse(body);
-                console.log(`Updating data in ${resource}`);
-                console.log(data);
-                updateData(db, resource, data);
-                res.writeHead(200, { "Content-Type": "application/json" });
-                res.end(JSON.stringify({ message: `Successfully updated ${resource}` }));
+                // Asynchronous handling
+                try {
+                    const data = JSON.parse(body);
+                    console.log(`Updating data in ${resource}`);
+                    console.log(data);
+                    const result = await updateData(resource, data); // Asynchronous call
+                    if (result && result.error) {
+                        res.writeHead(400, { "Content-Type": "application/json" });
+                        res.end(JSON.stringify({ error: result.error }));
+                    } else {
+                        res.writeHead(200, { "Content-Type": "application/json" });
+                        res.end(JSON.stringify({ message: `Successfully updated ${resource}`, data: result }));
+                    }
+                } catch (error) {
+                    res.writeHead(400, { "Content-Type": "application/json" });
+                    res.end(JSON.stringify({ error: "Invalid request format or internal error" }));
+                    console.error(`Error parsing JSON or processing PUT request: ${error.message}`);
+                }
             });
         } else {
             res.writeHead(404, { "Content-Type": "text/plain" });
@@ -308,24 +317,24 @@ const server = htpp.createServer((req, res) => {
         if (pathname.startsWith("/api")) {
             const resource = pathname.split("/").pop();
             let body = "";
-            let data = {};
             req.on("data", (chunk) => {
                 body += chunk.toString();
             });
             req.on("end", async () => {
+                // Asynchronous handling
+                let data = {};
                 try {
                     data = JSON.parse(body);
                 } catch (error) {
-                    console.error(`Error parsing JSON: ${error.message}`);
+                    console.error(`Error parsing JSON for DELETE: ${error.message}`);
                     res.writeHead(400, { "Content-Type": "application/json" });
-
                     res.end(JSON.stringify({ error: "Invalid JSON format." }));
                     return;
                 }
                 console.log(`Deleting data from ${resource}`);
                 console.log(data);
-                returnedData = deleteData(db, resource, data);
-                if (returnedData["error"]) {
+                const returnedData = await deleteData(resource, data); // Asynchronous call
+                if (returnedData && returnedData.error) {
                     res.writeHead(400, { "Content-Type": "application/json" });
                     res.end(JSON.stringify(returnedData));
                     return;
@@ -346,4 +355,12 @@ const server = htpp.createServer((req, res) => {
 
 server.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
+});
+
+// Add server shutdown handling to correctly close the PG pool
+process.on("SIGINT", async () => {
+    console.log("Server shutting down, closing PostgreSQL connection pool...");
+    await pool.end();
+    console.log("PostgreSQL connection pool closed.");
+    process.exit(0);
 });

@@ -1,11 +1,9 @@
-// index.js (pretpostavljam da je ovo vaša glavna datoteka)
 const { Pool } = require("pg");
-const fs = require("fs"); // I dalje ga zadržavamo ako se koristi za provjeru postojanja datoteke
-const dbConfig = require("./dbConfig"); // Učitavamo konfiguraciju baze podataka
+const dbConfig = require("./dbConfig"); // Load database configuration
 
 const pool = new Pool(dbConfig);
 
-// Pomoćna funkcija za izvršavanje upita
+// Helper function to execute queries
 async function query(text, params) {
     const client = await pool.connect();
     try {
@@ -18,8 +16,8 @@ async function query(text, params) {
 
 async function createDatabase() {
     try {
-        // SQL za kreiranje tabela u PostgreSQL-u
-        // SERIAL automatski kreira sekvencu za ID i postavlja ga kao default vrijednost
+        // SQL for creating tables in PostgreSQL
+        // SERIAL automatically creates a sequence for the ID and sets it as the default value
         await query(`
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
@@ -50,7 +48,7 @@ async function createDatabase() {
             CREATE TABLE IF NOT EXISTS user_films (
                 id INTEGER,
                 film_id INTEGER,
-                watched BOOLEAN DEFAULT FALSE, -- BOOLEAN u PostgreSQLu je TRUE/FALSE
+                watched BOOLEAN DEFAULT FALSE, -- BOOLEAN in PostgreSQL is TRUE/FALSE
                 PRIMARY KEY (id, film_id),
                 FOREIGN KEY (id) REFERENCES users(id) ON DELETE CASCADE,
                 FOREIGN KEY (film_id) REFERENCES films(id) ON DELETE CASCADE
@@ -65,7 +63,7 @@ async function createDatabase() {
         `);
         console.log("Database and tables created successfully (or already exist).");
 
-        // Provjera da li su kategorije već dodane
+        // Check if categories have already been added
         const categoryCount = await query(`SELECT COUNT(*) FROM categories`);
         console.log(categoryCount.rows);
         if (parseInt(categoryCount.rows[0].count) === 0) {
@@ -152,7 +150,7 @@ async function updateData(table, data) {
         }
     }
     if (table === "valid_id_sessions") {
-        const { id, session_id } = data; // Pretpostavljam da je ključ "id" za korisnika
+        const { id, session_id } = data; // Assuming "id" is the key for the user
         try {
             await query(`UPDATE ${table} SET session_id = $1 WHERE id = $2`, [session_id, id]);
             return { message: "Session updated successfully." };
@@ -175,7 +173,7 @@ async function updateData(table, data) {
     try {
         await query(`UPDATE ${table} SET ${setClause} WHERE id = $${values.length + 1}`, [...values, id]);
         const updatedData = await readData(table, { id: id });
-        return updatedData[0]; // Vraća prvi (i jedini) redak
+        return updatedData[0]; // Returns the first (and only) row
     } catch (error) {
         console.error(`Error updating data in ${table}:`, error);
         throw error;
@@ -184,9 +182,11 @@ async function updateData(table, data) {
 
 async function insertData(tableName, data) {
     const insertData = { ...data };
+    // The commented out line below was the original:
     // if (insertData.hasOwnProperty("id") && tableName !== "user_films") {
     //     delete insertData.id;
     // }
+    // Modified to include valid_id_sessions so 'id' is NOT deleted for it
     if (insertData.hasOwnProperty("id") && tableName !== "user_films" && tableName !== "valid_id_sessions") {
         delete insertData.id;
     }
@@ -196,7 +196,7 @@ async function insertData(tableName, data) {
     const placeholders = values.map((_, index) => `$${index + 1}`).join(", ");
 
     try {
-        // Provjera postojanja kolona (opcionalno, ali dobra praksa)
+        // Check for column existence (optional but good practice)
         const tableInfo = await query(`SELECT column_name FROM information_schema.columns WHERE table_name = $1`, [tableName]);
         const validColumns = tableInfo.rows.map((col) => col.column_name);
 
@@ -206,9 +206,9 @@ async function insertData(tableName, data) {
             }
         }
 
-        // RETURNING * vraća umetnuti redak, uključujući generirani ID
+        // RETURNING * returns the inserted row, including the generated ID
         const res = await query(`INSERT INTO ${tableName} (${columns}) VALUES (${placeholders}) RETURNING *`, values);
-        return res.rows[0]; // Vraća prvi (i jedini) umetnuti redak
+        return res.rows[0]; // Returns the first (and only) inserted row
     } catch (error) {
         console.error(`Error inserting data into ${tableName}:`, error);
         return { error: error.message };
@@ -217,22 +217,22 @@ async function insertData(tableName, data) {
 
 async function deleteData(tableName, condition) {
     if (!condition) {
-        throw new Error("Morate specificirati uslov za brisanje u formatu { 'stupac': 'vrednost' }.");
+        throw new Error("You must specify a condition for deletion in the format { 'column': 'value' }.");
     }
     try {
         const [columnName, value] = Object.entries(condition)[0];
 
         if (tableName === "films") {
-            // Obriši poveznice iz user_films tablice prije brisanja filma
+            // Delete references from the user_films table before deleting the film
             await query(`DELETE FROM user_films WHERE film_id = $1`, [value]);
         }
 
         const res = await query(`DELETE FROM ${tableName} WHERE ${columnName} = $1 RETURNING *`, [value]);
 
         if (res.rowCount === 0) {
-            throw new Error(`Nema podataka za brisanje sa ${columnName} = ${value} u tabeli "${tableName}".`);
+            throw new Error(`No data to delete with ${columnName} = ${value} in table "${tableName}".`);
         }
-        return { message: `Podaci sa ID ${value} su uspešno obrisani iz tabele "${tableName}".` };
+        return { message: `Data with ID ${value} successfully deleted from table "${tableName}".` };
     } catch (error) {
         console.error(`Error deleting data from ${tableName}:`, error);
         return { error: error.message };
@@ -250,7 +250,7 @@ async function verifyUser(username, password) {
         }
 
         if (user.password === password) {
-            // U stvarnoj aplikaciji koristite hashing lozinki (npr. bcrypt)
+            // In a real application, use password hashing (e.g., bcrypt)
             console.log("User verified successfully.");
             return {
                 id: user.id,
@@ -316,7 +316,7 @@ async function getAllUserIds() {
 async function createDefaultCategories() {
     const categories = ["Excellent movies", "Good movies", "Bad movies", "Unwatchable"];
     for (const category of categories) {
-        // Koristite for...of za async operacije
+        // Use for...of for async operations
         const data = { name: category };
         await insertData("categories", data);
     }
@@ -335,5 +335,5 @@ module.exports = {
     filmsWatched,
     filmsWatchedByUser,
     getAllUserIds,
-    pool, // Exportirajte pool kako biste ga mogli zatvoriti na kraju aplikacije
+    pool, // Export the pool so it can be closed at the end of the application
 };
