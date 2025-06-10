@@ -33,7 +33,7 @@ async function initializeDatabase() {
 
 initializeDatabase(); // Call initialization on server startup
 
-const port = 8080;
+const port = 8443;
 
 // The verifySession function must be asynchronous because checkSession now returns a Promise
 async function verifySession(req) {

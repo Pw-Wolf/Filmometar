@@ -46,18 +46,18 @@ document.addEventListener("DOMContentLoaded", () => {
             });
 
             const data = await response.json();
-            console.log("Response data:", data);
-            console.log("Response cookies:", document.cookie);
+            // console.log("Response data:", data);
+            // console.log("Response cookies:", document.cookie);
 
             if (response.ok) {
                 // Store sessionId in cookie
                 if (data.sessionId) {
                     document.cookie = `sessionId=${data.sessionId}; path=/`;
-                    console.log("Cookie after setting:", document.cookie);
+                    // console.log("Cookie after setting:", document.cookie);
 
                     // Store user data based on remember me choice
                     cookieData = data.user;
-                    console.log(cookieData);
+                    // console.log(cookieData);
 
                     if (formData.rememberMe) {
                         for (var key in cookieData) {
@@ -65,7 +65,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                 localStorage.setItem(key, JSON.stringify(cookieData[key]).replace(/['"]+/g, ""));
                             }
                         }
-                        console.log("Stored in :", localStorage.getItem("user"));
+                        // console.log("Stored in :", localStorage.getItem("user"));
                     } else {
                         for (var key in cookieData) {
                             if (cookieData.hasOwnProperty(key)) {
