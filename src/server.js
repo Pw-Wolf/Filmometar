@@ -1,4 +1,5 @@
-const http = require("http"); // Fixed 'htpp' to 'http'
+const http = require("http");
+const https = require("https");
 const { parse } = require("url");
 const fs = require("fs");
 const path = require("path");
@@ -34,6 +35,7 @@ async function initializeDatabase() {
 initializeDatabase(); // Call initialization on server startup
 
 const port = 8443;
+const httpPort = 8080; // Define a port for the HTTP server
 
 // The verifySession function must be asynchronous because checkSession now returns a Promise
 async function verifySession(req) {
@@ -53,7 +55,7 @@ const mimeType = {
     ".ico": "image/x-icon", // Added favicon type
 };
 
-const server = http.createServer(async (req, res) => {
+const requestHandler = async (req, res) => {
     // Server handler must be async
     const { method } = req;
     const pathname = parse(req.url).pathname;
@@ -351,11 +353,30 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(404, { "Content-Type": "text/plain" });
         res.end("Not Found");
     }
-});
+};
 
-server.listen(port, () => {
-    console.log(`Server is running on http://localhost:${port}`);
-});
+// Try to start HTTPS server
+try {
+    const privateKey = fs.readFileSync(path.join(__dirname, "ssl", "key.pem"), "utf8");
+    const certificate = fs.readFileSync(path.join(__dirname, "ssl", "cert.pem"), "utf8");
+
+    const credentials = {
+        key: privateKey,
+        cert: certificate,
+    };
+
+    const httpsServer = https.createServer(credentials, requestHandler);
+
+    httpsServer.listen(port, () => {
+        console.log(`HTTPS server is running on https://localhost:${port}`);
+    });
+} catch (error) {
+    console.warn("HTTPS server failed to start, falling back to HTTP:", error.message);
+    const httpServer = http.createServer(requestHandler);
+    httpServer.listen(httpPort, () => {
+        console.log(`HTTP server is running on http://localhost:${httpPort}`);
+    });
+}
 
 // Add server shutdown handling to correctly close the PG pool
 process.on("SIGINT", async () => {
