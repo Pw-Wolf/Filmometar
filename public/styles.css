@@ -791,6 +791,10 @@ input[type="number"] {
     border-color: var(--primary);
 }
 
+.required-field {
+    color: var(--red);
+}
+
 @media (min-width: 768px) and (max-width: 1024px) {
     header {
         flex-direction: column;
