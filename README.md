@@ -94,19 +94,19 @@ The following environment variables can be configured to customize the applicati
 │ └── access.log # Access log file
 ├── models/ # Directory for database models (if any)
 ├── public/ # Directory for static assets
-│ ├── [public/auth.js]auth.js ) # Authentication-related JavaScript
+│ ├── auth.js # Authentication-related JavaScript
 │ ├── favicon.ico # Favicon for the website
-│ ├── [public/index.html]index.html ) # Main HTML file
-│ ├── [public/login.html]login.html ) # Login page HTML
-│ ├── [public/login.js]login.js ) # Login page JavaScript
-│ ├── [public/register.html]register.html ) # Registration page HTML
-│ ├── [public/register.js]register.js ) # Registration page JavaScript
-│ ├── [public/script.js]script.js ) # Main JavaScript file for the app
-│ └── [public/styles.css]styles.css ) # CSS stylesheet
+│ ├── index.html # Main HTML file
+│ ├── login.html # Login page HTML
+│ ├── login.js # Login page JavaScript
+│ ├── register.html # Registration page HTML
+│ ├── register.js # Registration page JavaScript
+│ ├── script.js # Main JavaScript file for the app
+│ └── styles.css # CSS stylesheet
 └── src/ # Source code directory
-│ ├── [src/database.js]database.js ) # Database interaction logic
-│ ├── src/dbConfig.js # Database configuration
-│ └── [src/server.js]server.js ) # Main server file
+├── database.js # Database interaction logic
+├── dbConfig.js # Database configuration
+└── server.js # Main server file
 
 ## API Endpoints
 
