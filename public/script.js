@@ -103,17 +103,32 @@ function displayMovies(movies) {
         `;
         const deleteButton = movieCard.querySelector(".delete-movie");
         deleteButton.addEventListener("click", (event) => {
-            event.stopPropagation();
+            event.stopPropagation(); // Prevent click from triggering movie card click
             const movieId = movieCard.querySelector("h7").textContent;
             deleteMovie(movieId);
         });
 
-        // Logika za prikaz gumba za brisanje samo ako je korisnik dodao film
-        if (username === usersIds[movie.author_id]) {
-            // Dodajemo event listenere za prikaz/skrivanje gumba za brisanje
-            movieCard.addEventListener("mouseenter", () => showDeleteButton(movieCard));
-            movieCard.addEventListener("mouseleave", () => hideDeleteButton(movieCard));
-        }
+        // Event listener za kratki klik/tap (prikaz/skrivanje delete gumba)
+        // Dodajemo ga direktno na movieCard
+        movieCard.addEventListener("click", (event) => {
+            // Provjeri da li je klik bio na delete gumb, ako je, pusti delete gumb da odradi svoje
+            if (event.target.classList.contains("delete-movie")) {
+                return;
+            }
+
+            const movieId = parseInt(movieCard.querySelector("h7").textContent);
+            const movie = cachedMovies.find((m) => m.id === movieId);
+
+            // Prikazi/sakrij delete gumb samo ako je korisnik autor filma
+            if (movie && username === usersIds[movie.author_id]) {
+                const deleteButton = movieCard.querySelector(".delete-movie");
+                if (deleteButton.classList.contains("hidden")) {
+                    showDeleteButton(movieCard);
+                } else {
+                    hideDeleteButton(movieCard);
+                }
+            }
+        });
 
         movieList.appendChild(movieCard);
     });
@@ -401,19 +416,24 @@ function setActiveFilterBtn(activeId) {
 
 let longPressTimer;
 let targetMovieCard;
-let isLongPress = false; // Nova varijabla za praćenje je li riječ o dugom pritisku
+let isLongPressDetected = false; // Koristimo jasniji naziv varijable
 
-// Event listener za početak dodira (mobilni)
+// *** Izmjene za touch događaje (dugi pritisak) ***
 document.getElementById("movieList").addEventListener(
     "touchstart",
     (event) => {
-        if (event.target.closest(".movie-card")) {
-            targetMovieCard = event.target.closest(".movie-card");
-            isLongPress = false; // Resetiraj na početku pritiska
+        const movieCard = event.target.closest(".movie-card");
+        if (movieCard) {
+            // Prevent default ponašanje (npr. skrolanje, označavanje teksta) samo ako je target movie card
+            // Ovo može spriječiti klik događaje ako se ne pazi
+            // event.preventDefault(); // Oprezno s ovim!
+
+            targetMovieCard = movieCard;
+            isLongPressDetected = false; // Resetiraj na početku dodira
 
             longPressTimer = setTimeout(() => {
-                isLongPress = true; // Označi kao dugi pritisak
-                // Izvrši logiku za "watched" status samo kod dugog pritiska
+                isLongPressDetected = true; // Dugi pritisak detektiran
+                // Izvrši logiku za "watched" status
                 if (targetMovieCard.classList.contains("watched")) {
                     targetMovieCard.classList.remove("watched");
                     sendWatchedStatus(targetMovieCard, false);
@@ -422,49 +442,37 @@ document.getElementById("movieList").addEventListener(
                     sendWatchedStatus(targetMovieCard, true);
                 }
                 userWatchedMovies = fetchWatchedMovies();
-                // Sakrij gumb za brisanje nakon promjene statusa (ako je bio prikazan)
+                // Sakrij gumb za brisanje nakon promjene statusa dugim pritiskom
                 hideDeleteButton(targetMovieCard);
-            }, 500); // Kraće vrijeme za dugi pritisak, 0.5 sekunde
+            }, 500); // 500ms za dugi pritisak
         }
     },
-    { passive: false }
-); // { passive: false } je važno za preventDefault()
+    { passive: true }
+); // passive: true je često bolje za touchstart radi performansi skrolanja
 
-// Event listener za kraj dodira (mobilni)
 document.getElementById("movieList").addEventListener("touchend", (event) => {
     clearTimeout(longPressTimer);
-    // Ako nije bio dugi pritisak, tretiraj kao kratki klik/dodir
-    if (!isLongPress && event.target.closest(".movie-card")) {
-        const movieCard = event.target.closest(".movie-card");
-        const username = localStorage.getItem("username") || sessionStorage.getItem("username");
-        const movieAuthorId = movieCard.querySelector("h7").textContent; // Ovo je ID filma, a ne autora. Moramo dobiti ID autora iz cachedMovies
-        const movieId = parseInt(movieCard.querySelector("h7").textContent);
-        const movie = cachedMovies.find((m) => m.id === movieId);
-
-        if (movie && username === usersIds[movie.author_id]) {
-            const deleteButton = movieCard.querySelector(".delete-movie");
-            if (deleteButton.classList.contains("hidden")) {
-                showDeleteButton(movieCard);
-            } else {
-                hideDeleteButton(movieCard);
-            }
-        }
+    // Ako nije detektiran dugi pritisak, i ako je cilj bila kartica filma
+    if (!isLongPressDetected && event.target.closest(".movie-card")) {
+        // Ovdje se ne treba dogoditi ništa za kratki tap, jer to rješava 'click' listener na movieCard
+        // koji je dodan u displayMovies funkciji.
     }
 });
 
-// Event listener za prekid dodira (mobilni)
 document.getElementById("movieList").addEventListener("touchcancel", (event) => {
     clearTimeout(longPressTimer);
 });
 
-// Event listener za početak klika mišem (desktop)
+// *** Izmjene za mouse događaje (dugi pritisak) ***
 document.getElementById("movieList").addEventListener("mousedown", (event) => {
-    if (event.target.closest(".movie-card")) {
-        targetMovieCard = event.target.closest(".movie-card");
-        isLongPress = false;
+    const movieCard = event.target.closest(".movie-card");
+    if (movieCard) {
+        targetMovieCard = movieCard;
+        isLongPressDetected = false; // Resetiraj na početku klika
 
         longPressTimer = setTimeout(() => {
-            isLongPress = true;
+            isLongPressDetected = true; // Dugi pritisak detektiran
+            // Izvrši logiku za "watched" status
             if (targetMovieCard.classList.contains("watched")) {
                 targetMovieCard.classList.remove("watched");
                 sendWatchedStatus(targetMovieCard, false);
@@ -474,34 +482,20 @@ document.getElementById("movieList").addEventListener("mousedown", (event) => {
             }
             userWatchedMovies = fetchWatchedMovies();
             hideDeleteButton(targetMovieCard);
-        }, 500); // 0.5 sekunde
+        }, 500); // 500ms za dugi pritisak
     }
 });
 
-// Event listener za kraj klika mišem (desktop)
 document.getElementById("movieList").addEventListener("mouseup", (event) => {
     clearTimeout(longPressTimer);
-    // Ako nije bio dugi pritisak, tretiraj kao kratki klik
-    if (!isLongPress && event.target.closest(".movie-card")) {
-        const movieCard = event.target.closest(".movie-card");
-        const username = localStorage.getItem("username") || sessionStorage.getItem("username");
-        const movieId = parseInt(movieCard.querySelector("h7").textContent);
-        const movie = cachedMovies.find((m) => m.id === movieId);
-
-        if (movie && username === usersIds[movie.author_id]) {
-            const deleteButton = movieCard.querySelector(".delete-movie");
-            if (deleteButton.classList.contains("hidden")) {
-                showDeleteButton(movieCard);
-            } else {
-                hideDeleteButton(movieCard);
-            }
-        }
+    // Ako nije detektiran dugi pritisak, i ako je cilj bila kartica filma
+    if (!isLongPressDetected && event.target.closest(".movie-card")) {
+        // Ovdje se ne treba dogoditi ništa za kratki klik, jer to rješava 'click' listener na movieCard
+        // koji je dodan u displayMovies funkciji.
     }
 });
 
-// Event listener za odlazak miša s kartice (desktop) - ne treba nam za toggle, ali neka ostane ako ima drugu namjenu
 document.getElementById("movieList").addEventListener("mouseleave", (event) => {
-    // Nema potrebe za skrivanjem gumba ovdje, jer je toggle ponašanje
     clearTimeout(longPressTimer);
 });
 
@@ -542,21 +536,20 @@ async function sendWatchedStatus(movieCard, watched) {
 document.addEventListener("click", (event) => {
     const target = event.target;
 
+    // Category Dropdown
     if (target.id === "categoryDropdown") {
         event.preventDefault();
         const dropdown = document.getElementById("categoryList");
         dropdown.classList.toggle("show");
-    } else if (target.closest("#categoryList a")) {
+    }
+    // Category Links
+    else if (target.closest("#categoryList a")) {
         event.preventDefault();
         const categoryId = target.dataset.category;
         fetchMoviesByCategory(categoryId);
         document.getElementById("categoryList").classList.remove("show");
     }
-    // Uklanjamo ovu logiku jer sada klik na karticu upravlja prikazom/skrivanjem delete gumba
-    // else if (target.closest(".movie-card")) {
-    //     const movieCard = target.closest(".movie-card");
-    //     const movieTitle = movieCard.querySelector("h3").textContent;
-    // }
+    // Close dropdown when clicking outside
     if (!target.matches("#categoryDropdown")) {
         const dropdowns = document.getElementsByClassName("dropdown-content");
         for (const dropdown of dropdowns) {
