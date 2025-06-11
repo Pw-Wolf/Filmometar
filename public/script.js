@@ -45,14 +45,18 @@ async function fetchIdsUsers() {
     }
 }
 
-function showDeleteButton(movieCard) {
+function showMovieButton(movieCard) {
     const deleteButton = movieCard.querySelector(".delete-movie");
     deleteButton.classList.remove("hidden");
+    const editButton = movieCard.querySelector(".edit-movie");
+    editButton.classList.remove("hidden");
 }
 
-function hideDeleteButton(movieCard) {
+function hideMovieButton(movieCard) {
     const deleteButton = movieCard.querySelector(".delete-movie");
     deleteButton.classList.add("hidden");
+    const editButton = movieCard.querySelector(".edit-movie");
+    editButton.classList.add("hidden");
 }
 
 function displayMovies(movies) {
@@ -89,6 +93,7 @@ function displayMovies(movies) {
 
         movieCard.innerHTML = `
             <h7 class="movie-id hidden">${movie.id}</h7>
+            <div class="edit-movie hidden">edit</div>
             <div class="delete-movie hidden">&#x2715;</div>
             <h3>${movie.name}</h3>
             <div>
@@ -109,11 +114,20 @@ function displayMovies(movies) {
             deleteMovie(movieId);
         });
 
+        const editButton = movieCard.querySelector(".edit-movie");
+        editButton.addEventListener("click", (event) => {
+            event.stopPropagation(); // Prevent click from triggering movie card click
+            const movieId = movieCard.querySelector("h7").textContent;
+            editMovie(movieId);
+        });
+
         // Event listener za kratki klik/tap (prikaz/skrivanje delete gumba)
         // Dodajemo ga direktno na movieCard
         movieCard.addEventListener("click", (event) => {
             // Provjeri da li je klik bio na delete gumb, ako je, pusti delete gumb da odradi svoje
             if (event.target.classList.contains("delete-movie")) {
+                return;
+            } else if (event.target.classList.contains("edit-movie")) {
                 return;
             }
 
@@ -124,15 +138,130 @@ function displayMovies(movies) {
             if (movie && username === usersIds[movie.author_id]) {
                 const deleteButton = movieCard.querySelector(".delete-movie");
                 if (deleteButton.classList.contains("hidden")) {
-                    showDeleteButton(movieCard);
+                    showMovieButton(movieCard);
                 } else {
-                    hideDeleteButton(movieCard);
+                    hideMovieButton(movieCard);
                 }
             }
         });
 
         movieList.appendChild(movieCard);
     });
+}
+
+async function populateEditForm(movieId) {
+    const movie = cachedMovies.find((m) => m.id === parseInt(movieId));
+
+    if (!movie) {
+        console.error("Movie not found for editing.");
+        return;
+    }
+
+    document.getElementById("movieTitle").value = movie.name;
+    document.getElementById("movieYear").value = movie.year;
+    document.getElementById("movieDescription").value = movie.description;
+    document.getElementById("movieRating").value = movie.rating;
+    document.getElementById("movieCategory").value = movie.genre_id;
+    document.getElementById("movieGenre").value = movie.genre;
+
+    // Dodaj skriveni input za ID filma
+    const movieIdInput = document.createElement("input");
+    movieIdInput.type = "hidden";
+    movieIdInput.id = "movieId";
+    movieIdInput.value = movie.id;
+    document.getElementById("movieForm").appendChild(movieIdInput);
+}
+
+async function sendEditMovieData(movieId) {
+    let userId;
+    let yearFilm = parseInt(document.getElementById("movieYear").value);
+
+    let description = document.getElementById("movieDescription").value;
+    let movieTitle = document.getElementById("movieTitle").value;
+
+    if (description.trim() === "") description = "No description available.";
+
+    userId = localStorage.getItem("id");
+    if (!userId) userId = sessionStorage.getItem("id");
+
+    if (movieTitle.trim() === "") {
+        showPopupMessage(`Title cannot be empty`, false, 2000);
+        return;
+    }
+
+    const movieData = {
+        id: parseInt(movieId),
+        name: document.getElementById("movieTitle").value,
+        year: yearFilm,
+        description: description,
+        rating: parseInt(document.getElementById("movieRating").value),
+        genre_id: parseInt(document.getElementById("movieCategory").value),
+        genre: document.getElementById("movieGenre").value,
+        author_id: parseInt(userId),
+    };
+
+    if (isNaN(movieData.year)) {
+        showPopupMessage(`Year is not a valid number`, false, 2000);
+        return;
+    } else if (isNaN(movieData.rating)) {
+        showPopupMessage(`Rating is not a valid number`, false, 2000);
+        return;
+    } else if (isNaN(movieData.genre_id)) {
+        showPopupMessage(`Genre ID is not a valid number`, false, 2000);
+        return;
+    } else if (yearFilm < 1900 || yearFilm > new Date().getFullYear()) {
+        showPopupMessage(`Year must be between 1900 and the current year`, false, 2000);
+        return;
+    } else if (movieData.rating < 0 || movieData.rating > 10) {
+        showPopupMessage(`Rating must be between 0 and 10`, false, 2000);
+        return;
+    }
+
+    try {
+        const response = await fetch("/api/films", {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(movieData),
+            credentials: "include",
+        });
+
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+        const result = await response.json();
+
+        document.getElementById("movieTitle").value = "";
+        document.getElementById("movieYear").value = "";
+        document.getElementById("movieDescription").value = "";
+        document.getElementById("movieRating").value = "";
+        document.getElementById("movieCategory").value = "";
+
+        modal.style.display = "none";
+        await refreshCache();
+        showPopupMessage(`Succesfully edited the movie`, true, 2000);
+    } catch (error) {
+        console.error("Error adding movie:", error);
+    }
+}
+
+async function editMovie(movieId) {
+    modal.style.display = "block";
+    populateCategorySelect();
+    populateGenreSelect();
+    await populateEditForm(movieId);
+
+    // Promijeni tekst gumba i event listener
+    const addMovieButton = document.querySelector("#addMovieModal .submit-btn");
+    addMovieButton.textContent = "Edit Movie";
+    addMovieButton.removeEventListener("click", addMovieButton.originalAddMovieListener); // Ukloni stari listener
+    addMovieButton.originalAddMovieListener = async (e) => {
+        e.preventDefault();
+        const movieIdInput = document.getElementById("movieId");
+        const movieId = movieIdInput.value;
+        await sendEditMovieData(movieId);
+    };
+    addMovieButton.addEventListener("click", addMovieButton.originalAddMovieListener); // Dodaj novi listener
 }
 
 async function deleteMovie(movieId) {

@@ -741,6 +741,56 @@ input[type="number"] {
     border-color: rgba(255, 255, 255, 0.2); /* Tamniji obrub na active */
 }
 
+.edit-movie {
+    /* VELIČINA I CENTRIRANJE */
+    width: auto;
+    padding: 0px 10px;
+    height: 25px;
+    text-align: center;
+    line-height: 25px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    /* padding-left: 0px; */
+
+    /* POZICIONIRANJE */
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 10;
+
+    /* VIZUALNI IZGLED */
+    color: white; /* Boja ikone za edit */
+    border-radius: 5%;
+    cursor: pointer;
+
+    /* Efekt sjaja i dubine */
+    box-shadow: 0 3px 8px var(--glass-shadow);
+
+    /* Stil za ikonu */
+    font-size: 1em;
+    font-weight: bold;
+    text-shadow: 0 0 5px var(--text-glow-light);
+
+    /* Glatke tranzicije */
+    transition: background-color 3s ease-in-out, box-shadow 3s ease-in-out, transform 3s ease-in-out, border-color 3s ease-in-out;
+}
+
+.edit-movie:hover {
+    color: var(--background); /* Promijenjena boja hovera */
+    transform: scale(1.08);
+    border-color: var(--primary);
+}
+
+.edit-movie:active {
+    background-color: var(--primary); /* Promijenjena boja active */
+    box-shadow: 0 1px 3px var(--glass-shadow);
+    transform: scale(0.95);
+    border-color: var(--primary);
+}
+
 @media (min-width: 768px) and (max-width: 1024px) {
     header {
         flex-direction: column;
