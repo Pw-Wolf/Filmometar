@@ -82,6 +82,7 @@ function displayMovies(movies) {
 
         const movieCard = document.createElement("div");
         movieCard.className = "movie-card";
+        movieCard.style.userSelect = "none"; // Dodaj ovo svojstvo
         if (movie.watched) {
             movieCard.classList.add("watched");
         }
