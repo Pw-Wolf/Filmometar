@@ -10,7 +10,7 @@ const genresList = ["Action", "Adventure", "Animation", "Comedy", "Crime", "Docu
 
 async function fetchMovies() {
     try {
-        const response = await fetch("http://localhost:8080/api/films");
+        const response = await fetch("/api/films");
 
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
@@ -27,7 +27,7 @@ async function fetchMovies() {
 
 async function fetchCategories() {
     try {
-        const response = await fetch("http://localhost:8080/api/categories");
+        const response = await fetch("/api/categories");
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         cachedCategories = await response.json();
     } catch (error) {
@@ -37,7 +37,7 @@ async function fetchCategories() {
 
 async function fetchIdsUsers() {
     try {
-        const response = await fetch("http://localhost:8080/api/id_users");
+        const response = await fetch("/api/id_users");
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         usersIds = await response.json();
     } catch (error) {
