@@ -86,27 +86,29 @@ The following environment variables can be configured to customize the applicati
 
 ## Directory Structure
 
-├── .gitignore # Specifies intentionally untracked files that Git should ignore
-├── package.json # Contains metadata about the app and its dependencies
-├── README.md # Provides an overview of the project (this file)
-├── certs/ # Directory for SSL certificates (key.pem, cert.pem)
-├── logs/ # Directory for access logs
-│ └── access.log # Access log file
-├── models/ # Directory for database models (if any)
-├── public/ # Directory for static assets
-│ ├── auth.js # Authentication-related JavaScript
-│ ├── favicon.ico # Favicon for the website
-│ ├── index.html # Main HTML file
-│ ├── login.html # Login page HTML
-│ ├── login.js # Login page JavaScript
-│ ├── register.html # Registration page HTML
-│ ├── register.js # Registration page JavaScript
-│ ├── script.js # Main JavaScript file for the app
-│ └── styles.css # CSS stylesheet
-└── src/ # Source code directory
-├── database.js # Database interaction logic
-├── dbConfig.js # Database configuration
-└── server.js # Main server file
+```
+├── .gitignore          # Specifies intentionally untracked files that Git should ignore
+├── package.json        # Contains metadata about the app and its dependencies
+├── README.md           # Provides an overview of the project (this file)
+├── certs/              # Directory for SSL certificates (key.pem, cert.pem)
+├── logs/               # Directory for access logs
+│   └── access.log      # Access log file
+├── models/             # Directory for database models (if any)
+├── public/             # Directory for static assets
+│   ├── auth.js         # Authentication-related JavaScript
+│   ├── favicon.ico     # Favicon for the website
+│   ├── index.html      # Main HTML file
+│   ├── login.html      # Login page HTML
+│   ├── login.js        # Login page JavaScript
+│   ├── register.html   # Registration page HTML
+│   ├── register.js     # Registration page JavaScript
+│   ├── script.js       # Main JavaScript file for the app
+│   └── styles.css      # CSS stylesheet
+└── src/                # Source code directory
+    ├── database.js     # Database interaction logic
+    ├── dbConfig.js     # Database configuration
+    └── server.js       # Main server file
+```
 
 ## API Endpoints
 
