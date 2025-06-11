@@ -4,6 +4,7 @@ const { parse } = require("url");
 const fs = require("fs");
 const path = require("path");
 const cookie = require("cookie");
+const morgan = require("morgan"); // Import morgan
 
 // We only import functions, the 'db' object (pool) is not passed
 // but functions in 'database.js' use it directly
@@ -55,10 +56,19 @@ const mimeType = {
     ".ico": "image/x-icon", // Added favicon type
 };
 
+// Create a stream for access logs
+const accessLogStream = fs.createWriteStream(path.join(__dirname, "..", "/logs", "access.log"), { flags: "a" });
+
 const requestHandler = async (req, res) => {
-    // Server handler must be async
+    // Log the request with Morgan to a file
+    morgan("combined", { stream: accessLogStream })(req, res, () => {});
+
     const { method } = req;
     const pathname = parse(req.url).pathname;
+
+    // Get IP address
+    const ip = req.headers["x-forwarded-for"] || req.connection.remoteAddress;
+    console.log(`Request from IP: ${ip}`);
 
     console.log(`Received ${method} request for ${pathname}`);
 
@@ -101,7 +111,7 @@ const requestHandler = async (req, res) => {
                         res.end(`Error loading ${place} page`);
                         return;
                     }
-                    res.writeHead(200, { "Content-Type": "text/html" });
+                    res.writeHead(200, { "Content-Type": contentType });
                     res.end(data);
                 });
                 return;
