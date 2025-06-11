@@ -111,7 +111,7 @@ const requestHandler = async (req, res) => {
                         res.end(`Error loading ${place} page`);
                         return;
                     }
-                    res.writeHead(200, { "Content-Type": contentType });
+                    res.writeHead(200);
                     res.end(data);
                 });
                 return;
