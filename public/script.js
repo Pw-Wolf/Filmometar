@@ -433,32 +433,66 @@ function setActiveFilterBtn(activeId) {
 let longPressTimer;
 let targetMovieCard;
 
+// *** Izmjene za touch događaje počinju ovdje ***
+document.getElementById("movieList").addEventListener(
+    "touchstart",
+    (event) => {
+        if (event.target.closest(".movie-card")) {
+            event.preventDefault(); // Spriječi defaultno ponašanje (npr. označavanje teksta)
+            targetMovieCard = event.target.closest(".movie-card");
+            longPressTimer = setTimeout(() => {
+                if (targetMovieCard.classList.contains("watched")) {
+                    targetMovieCard.classList.remove("watched");
+                    sendWatchedStatus(targetMovieCard, false);
+                } else {
+                    targetMovieCard.classList.add("watched");
+                    sendWatchedStatus(targetMovieCard, true);
+                }
+                userWatchedMovies = fetchWatchedMovies();
+            }, 1000); // 1 sekunda
+        }
+    },
+    { passive: false }
+); // Koristi { passive: false } za spriječavanje defaultnog ponašanja
+
+document.getElementById("movieList").addEventListener("touchend", (event) => {
+    clearTimeout(longPressTimer);
+});
+
+document.getElementById("movieList").addEventListener("touchcancel", (event) => {
+    clearTimeout(longPressTimer);
+});
+// *** Izmjene za touch događaje završavaju ovdje ***
+
+// Zadrži postojeće mouse događaje za desktop
 document.getElementById("movieList").addEventListener("mousedown", (event) => {
     if (event.target.closest(".movie-card")) {
         targetMovieCard = event.target.closest(".movie-card");
         longPressTimer = setTimeout(() => {
-            // Add a class to change the background color
             if (targetMovieCard.classList.contains("watched")) {
                 targetMovieCard.classList.remove("watched");
                 sendWatchedStatus(targetMovieCard, false);
             } else {
-                sendWatchedStatus(targetMovieCard, true);
                 targetMovieCard.classList.add("watched");
+                sendWatchedStatus(targetMovieCard, true);
             }
             userWatchedMovies = fetchWatchedMovies();
         }, 1000); // 1 second
     }
 });
 
+document.getElementById("movieList").addEventListener("mouseup", (event) => {
+    clearTimeout(longPressTimer);
+});
+
+document.getElementById("movieList").addEventListener("mouseleave", (event) => {
+    clearTimeout(longPressTimer);
+});
+
 async function sendWatchedStatus(movieCard, watched) {
     const movieId = movieCard.querySelector("h7").textContent;
-    // const watchedStatus = movieCard.classList.contains("watched") ? 1 : 0;
-
-    // Here you would send the watched status to the server
-    // console.log(`Sending watched status for "${movieId}": ${watched}`);
     userId = localStorage.getItem("id");
     if (!userId) userId = sessionStorage.getItem("id");
-    // Example fetch request (you need to implement the endpoint on your server)
 
     let movieData = {
         user_id: parseInt(userId),
@@ -480,8 +514,6 @@ async function sendWatchedStatus(movieCard, watched) {
             return response.json();
         })
         .then((data) => {
-            // Handle the response from the server
-            // console.log("Watched status updated successfully:", data);
             showPopupMessage("Watched status updated!", true, 2000); // Show success message
             refreshCache();
         })
@@ -490,14 +522,6 @@ async function sendWatchedStatus(movieCard, watched) {
             showPopupMessage("Failed to update watched status.", false, 2000); // Show error message
         });
 }
-
-document.getElementById("movieList").addEventListener("mouseup", (event) => {
-    clearTimeout(longPressTimer);
-});
-
-document.getElementById("movieList").addEventListener("mouseleave", (event) => {
-    clearTimeout(longPressTimer);
-});
 
 document.addEventListener("click", (event) => {
     const target = event.target;
